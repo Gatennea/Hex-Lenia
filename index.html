@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六角 Lenia 元胞自动机</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0b0b16;
+  color: #dfe3ea;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; padding: 10px; user-select: none;
+}
+h1 { font-size: 1.05rem; color: #37e6d0; letter-spacing: 3px; margin-bottom: 8px; font-weight: 600; }
+#stage {
+  position: relative; border: 1px solid #26263c; border-radius: 6px;
+  overflow: hidden; background: #050508; cursor: crosshair;
+}
+#stage.panning { cursor: grab; }
+#stage.panning:active { cursor: grabbing; }
+canvas { display: block; }
+
+.bar {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  justify-content: center; max-width: 980px; margin-top: 8px;
+}
+.btn {
+  padding: 5px 12px; border: 1px solid #34344e; border-radius: 5px;
+  background: #171728; color: #ccd2de; cursor: pointer;
+  font-size: 0.8rem; transition: all .12s; font-family: inherit;
+}
+.btn:hover { background: #22223a; border-color: #4a4a70; }
+.btn.active { background: #0e6a5e; border-color: #16b8a2; color: #eafffb; }
+.btn.run { background: #0e6a5e; border-color: #16b8a2; color: #eafffb; }
+select {
+  padding: 5px 8px; border: 1px solid #34344e; border-radius: 5px;
+  background: #171728; color: #ccd2de; font-size: 0.8rem; font-family: inherit;
+}
+.param { display: flex; align-items: center; gap: 5px; background: #14142a;
+  border: 1px solid #2a2a44; border-radius: 5px; padding: 3px 8px; }
+.param label { font-size: 0.74rem; color: #8b93ab; min-width: 30px; }
+.param input[type=range] { width: 86px; accent-color: #16b8a2; }
+.param .val { font-size: 0.74rem; color: #37e6d0; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+#stats {
+  font-size: 0.76rem; color: #7d86a0; margin-top: 7px;
+  font-variant-numeric: tabular-nums; text-align: center; line-height: 1.6;
+}
+#stats b { color: #37e6d0; font-weight: 600; }
+.hint { font-size: 0.72rem; color: #565e78; margin-top: 5px; }
+#help {
+  display: none; max-width: 940px; margin-top: 8px;
+  background: #12122a; border: 1px solid #2a2a44; border-radius: 8px;
+  padding: 12px 18px 14px; font-size: 0.77rem; line-height: 1.75; color: #aab2c8; text-align: left;
+}
+#help h3 { color: #37e6d0; font-size: 0.82rem; margin: 10px 0 3px; font-weight: 600; }
+#help .eq { color: #e8d47a; background: #0a0a18; padding: 5px 9px; border-radius: 4px; display: block; margin: 4px 0; }
+#help b { color: #ccd6ea; }
+.sep { color: #3a3f58; margin: 0 2px; }
+#ruleChips .chip { font-size: 0.72rem; padding: 3px 8px; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<h1>⬡ HEX LENIA</h1>
+<div id="stage"><canvas id="c"></canvas></div>
+
+<div class="bar">
+  <button class="btn run" id="btnRun">⏸ 暂停</button>
+  <button class="btn" id="btnStep">单步</button>
+  <button class="btn" id="btnRandom">🎲 随机</button>
+  <button class="btn" id="btnClear">清空</button>
+  <select id="selPattern" title="初始图案">
+    <option value="">— 图案 —</option>
+    <option value="disk">圆盘</option>
+    <option value="ring">圆环</option>
+    <option value="stripe">条纹</option>
+  </select>
+  <button class="btn" id="btnShot" title="导出 PNG">📷 截图</button>
+  <button class="btn" id="btnHelp" title="参数与公式说明">? 帮助</button>
+</div>
+
+<div class="bar">
+  <div class="param" title="核半径 R：邻居影响范围（单位=格距）。越大形成的结构越大；用 FFT 卷积，R 不影响步进速度"><label>R</label><input type="range" id="sR" min="3" max="20" step="1" value="10"><span class="val" id="vR">10</span></div>
+  <div class="param" title="μ 激活中心：邻居密度均值最有利于生长的目标值。经典值 0.15"><label>μ</label><input type="range" id="sM" min="0.05" max="0.60" step="0.005" value="0.15"><span class="val" id="vM">0.150</span></div>
+  <div class="param" title="σ 激活宽度：势能偏离 μ 多少仍能生长。越小越“挑剔”，结构越精细"><label>σ</label><input type="range" id="sS" min="0.005" max="0.200" step="0.001" value="0.016"><span class="val" id="vS">0.016</span></div>
+  <div class="param" title="T 时间分辨率：dt = 1/T。T 越大单步变化越小、演化越细腻"><label>T</label><input type="range" id="sT" min="2" max="40" step="1" value="10"><span class="val" id="vT">10</span></div>
+  <div class="param" title="α 核形状指数：凸包/多项式核的尖锐度，经典值 4"><label>α</label><input type="range" id="sA" min="1" max="10" step="1" value="4"><span class="val" id="vA">4</span></div>
+  <select id="selCore" title="核核心函数：环形核从中心到边缘的形状（指数凸包=原版默认）">
+    <option value="exp">核·指数凸包</option>
+    <option value="poly">核·多项式</option>
+    <option value="rect">核·台阶</option>
+  </select>
+  <select id="selGrow" title="增长函数：把势能映射为生长(+)/衰减(−)（作用于当前选中的规则）">
+    <option value="gaus">增长·高斯</option>
+    <option value="poly">增长·多项式</option>
+    <option value="rect">增长·台阶</option>
+    <option value="trap">增长·梯形</option>
+  </select>
+  <select id="selView" title="显示模式：平滑=连续场插值（原版 Lenia 风格）；像素=离散六角格">
+    <option value="smooth">显示·平滑</option>
+    <option value="pixel">显示·像素</option>
+  </select>
+</div>
+
+<div class="bar">
+  <select id="selEco" title="物种/生态预设">
+    <option value="solo">单物种 Lenia</option>
+    <option value="predator">捕食者-猎物 (2)</option>
+    <option value="compete">三物种竞争 (3)</option>
+  </select>
+  <span id="ruleChips" class="bar" style="margin-top:0"></span>
+  <span id="chSel" class="bar" style="margin-top:0"></span>
+  <div class="param" title="模拟速度：每秒执行多少步"><label>速度</label><input type="range" id="sSpeed" min="1" max="60" step="1" value="15"><span class="val" id="vSpeed">15/s</span></div>
+  <div class="param" title="随机初始化密度：非零格子出现的概率（值本身取 0~1 随机）"><label>密度</label><input type="range" id="sDens" min="0.05" max="1" step="0.05" value="0.5"><span class="val" id="vDens">0.50</span></div>
+  <div class="param" title="笔刷半径：绘制/擦除的影响范围（格）"><label>笔刷</label><input type="range" id="sBrush" min="1" max="8" step="1" value="2"><span class="val" id="vBrush">2</span></div>
+  <select id="selGrid" title="空间大小：整个环面的格数（左右上下首尾相接，与原版 Lenia 相同的拓扑）。须为 2 的幂（FFT 要求）；512² 对性能要求较高">
+    <option value="32">空间 32²</option>
+    <option value="64">64²</option>
+    <option value="128" selected>128²</option>
+    <option value="256">256²</option>
+    <option value="512">512²</option>
+  </select>
+</div>
+
+<div id="stats"></div>
+<div class="hint">左键绘制 · 右键/中键拖拽平移 · 滚轮缩放 · Alt+左键擦除 · 空格暂停 · 点「? 帮助」看参数说明</div>
+
+<div id="help">
+  <h3>核心公式（与原版 Lenia / 论文 1812.05433 一致）</h3>
+  <span class="eq">U = K ⊛ A（环形核加权平均，ΣK=1） → G(U) = 2·exp(−(U−μ)²/(2σ²)) − 1 → A′ = clip(A + dt·G(U), 0, 1)，dt = 1/T</span>
+  <span class="eq">核 K(x) = Kc(|x|/R)，支撑 |x| &lt; R；核核心 Kc(r) = exp(α − α/(4r(1−r)))（指数凸包，α=4）</span>
+  <h3>参数怎么调</h3>
+  <b>R 核半径</b>：邻居影响范围（格距），决定结构尺寸；用 FFT 计算，R 不影响步进速度。
+  <b>μ 激活中心</b>：邻居平均密度在 μ 附近时生长、远离时衰减 —— 全局最关键参数，0.10~0.30 之间探索。
+  <b>σ 激活宽度</b>：允许生长的势能窗口。小（0.01~0.03）→ 精细结构；大（0.05+）→ 团块结构。
+  <b>T 时间步</b>：dt=1/T，T 大则单步变化小、更平滑。
+  <b>α 核尖锐度</b>：只影响指数凸包/多项式核的形状。
+  <b>速度</b>：每秒步数；<b>密度</b>：随机初始化的非零概率；<b>笔刷</b>：绘制半径（格）。
+  <b>空间</b>：整个空间的总格数（环面，见下），须为 2 的幂；512² 更细腻但更耗性能。
+  <h3>多物种规则怎么读</h3>
+  每条规则 <b>源→目标</b>：对「源」通道做卷积得到势能，经增长函数后按权重 h 加到「目标」通道，同一目标的多条规则按 Σh 归一化。
+  点击规则 chip 后，μ / σ / 增长函数三个控件作用于该规则；R / α / T 为全局。
+  「绘制 A/B」切换笔刷涂到哪个物种。三通道显示为红/绿/蓝（同原版多通道）。
+  <h3>空间拓扑（为什么不是无限）</h3>
+  这是一个<b>环面</b>（甜甜圈）：左右相接、上下相接 —— 与原版 Lenia 完全相同，它也是有限的。
+  视觉上显示为矩形只是换了“裁断位置”；图案穿过边界会从另一侧回来。真正无限的网格无法使用 FFT 卷积（需另套架构），大空间（256²/512²）已足够感觉不到边界。
+</div>
+
+<script>
+"use strict";
+// ════════════════════════════════════════════════════════════════
+//  六角 Lenia — 基于原版 Lenia (github.com/Chakazul/Lenia, MIT) 移植
+//  公式（论文 1812.05433 §2.1 与原版源码一致）：
+//    K(x) = Kc(|x|/R),  支撑 |x| < R,  归一化 ΣK = 1
+//    Kc(r) = exp(α − α/(4r(1−r)))            [指数凸包, α=4]
+//    G(u)  = 2·exp(−(u−μ)²/(2σ²)) − 1        [高斯增长, ∈[−1,1]]
+//    A'    = clip(A + dt·G(K⊛A), 0, 1),  dt = 1/T
+//  多通道（原版 LeniaNDKC 规则列表结构）：
+//    D[dst] += h·G(conv(K, A[src]));  A' = clip(A + dt·D/Σh, 0, 1)
+// ════════════════════════════════════════════════════════════════
+
+const SQ3 = Math.sqrt(3);
+const LETTERS = ["A", "B", "C"];
+const CH_COLORS = ["#37e6d0", "#ff5fa2", "#ffd23e"];
+
+// ---------- 全局状态 ----------
+let W = 128, H = 128, N = W * H;
+let CH = 1;                    // 物种/通道数
+let fields = [], nexts = [];   // Float64Array(N) × CH（双缓冲）
+let D = [];                    // 每通道增量累加器
+let Dn = [];                   // 每通道 Σh
+let chFft = [];                // 每通道频域缓存 {re, im}
+let rules = [];                // [{src,dst,m,s,h,g}]
+let curRule = 0;               // 当前编辑的规则
+let srcChannels = [0];         // 预计算：被作为源的通道（避免每步 new Set）
+let initMul = null;            // 预设的每通道初始密度倍率
+let paintCh = 0;               // 绘制通道
+let gen = 0, running = true;
+let coreType = "exp";          // 核核心函数（全局）
+let alpha = 4;                 // 核指数
+let R = 10;                    // 核半径（格距）
+let T = 10;                    // 时间分辨率 dt = 1/T
+let speed = 15;                // 步/秒
+let dens = 0.5;                // 随机初始化密度
+let brushR = 2;                // 笔刷半径
+let stepMs = 0;
+let viewMode = "smooth";       // 显示：smooth=平滑插值（原版风格）| pixel=离散六角格
+
+// ---------- 增长函数（∈[−1,1]）----------
+function gGauss(u, m, s) { const d = u - m; return 2 * Math.exp(-(d * d) / (2 * s * s)) - 1; }
+function gPoly(u, m, s) {
+  const d = u - m, k = 9 * s * s, t = 1 - d * d / k;
+  return (d * d > k ? 0 : Math.pow(t, 4)) * 2 - 1;
+}
+function gRect(u, m, s) { return Math.abs(u - m) <= s ? 1 : -1; }
+function gTrap(u, m, s) {
+  const r = Math.abs(u - m), p = s / 2, q = s * 2;
+  if (r <= p) return 1;
+  if (r <= q) return 2 * (q - r) / (q - p) - 1;
+  return -1;
+}
+const GROWTHS = { gaus: gGauss, poly: gPoly, rect: gRect, trap: gTrap };
+
+// ---------- 核核心函数 Kc(r), r∈[0,1)，支撑 r<1 ----------
+function kExp(r, a) {
+  if (r <= 0 || r >= 1) return 0;
+  const k = 4 * r * (1 - r);
+  return Math.exp(a - a / k);
+}
+function kPoly(r, a) {
+  if (r <= 0 || r >= 1) return 0;
+  return Math.pow(4 * r * (1 - r), a);
+}
+function kRect(r) { return (r >= 0.25 && r <= 0.75) ? 1 : 0; }
+const CORES = { exp: (r, a) => kExp(r, a), poly: (r, a) => kPoly(r, a), rect: (r) => kRect(r) };
+
+// ════════════════════════════════════════════════════════════════
+//  FFT：迭代 radix-2 Cooley-Tukey（行/列两遍 → 2D）
+// ════════════════════════════════════════════════════════════════
+const fftCache = new Map();
+function makeFFT(n) {
+  let t = fftCache.get(n);
+  if (t) return t;
+  const rev = new Uint32Array(n);
+  let bits = Math.log2(n);
+  for (let i = 0; i < n; i++) {
+    let x = i, r = 0;
+    for (let b = 0; b < bits; b++) { r = (r << 1) | (x & 1); x >>= 1; }
+    rev[i] = r;
+  }
+  const cos = new Float64Array(n / 2), sin = new Float64Array(n / 2);
+  for (let k = 0; k < n / 2; k++) {
+    cos[k] = Math.cos(2 * Math.PI * k / n);
+    sin[k] = Math.sin(2 * Math.PI * k / n);
+  }
+  t = { n, rev, cos, sin };
+  fftCache.set(n, t);
+  return t;
+}
+
+// 1D FFT，支持 stride（列变换用）；dir=-1 正变换，dir=+1 逆变换（含 1/n 归一）
+function fft1d(re, im, off, stride, tbl, dir) {
+  const n = tbl.n, rev = tbl.rev;
+  for (let i = 0; i < n; i++) {
+    const j = rev[i];
+    if (i < j) {
+      const a = off + i * stride, b = off + j * stride;
+      let t = re[a]; re[a] = re[b]; re[b] = t;
+      t = im[a]; im[a] = im[b]; im[b] = t;
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const half = len >> 1, st = n / len;
+    for (let i = 0; i < n; i += len) {
+      for (let j = 0; j < half; j++) {
+        const w = j * st;
+        const wr = tbl.cos[w];
+        const wi = dir < 0 ? -tbl.sin[w] : tbl.sin[w];
+        const a0 = off + (i + j) * stride, a1 = off + (i + j + half) * stride;
+        const xr = re[a1], xi = im[a1];
+        const tr = wr * xr - wi * xi;
+        const ti = wr * xi + wi * xr;
+        re[a1] = re[a0] - tr; im[a1] = im[a0] - ti;
+        re[a0] += tr; im[a0] += ti;
+      }
+    }
+  }
+  if (dir > 0) {
+    const sc = 1 / n;
+    for (let i = 0; i < n; i++) { const a = off + i * stride; re[a] *= sc; im[a] *= sc; }
+  }
+}
+
+function fft2d(re, im, w, h, dir) {
+  const tw = makeFFT(w), th = makeFFT(h);
+  for (let r = 0; r < h; r++) fft1d(re, im, r * w, 1, tw, dir);
+  for (let c = 0; c < w; c++) fft1d(re, im, c, w, th, dir);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  核构建：六角距离 → 频域核（缓存）
+//  六角轴向 (dq,dr) 的笛卡尔距离：dx = dq+dr/2, dy = (√3/2)·dr
+// ════════════════════════════════════════════════════════════════
+function buildKernel(rad) {
+  const sp = new Float64Array(N);          // 空间核，中心在索引 0
+  const taps = [];                         // {dq,dr,w} 供自检
+  const bound = Math.ceil(rad * 1.6) + 1;
+  const core = CORES[coreType];
+  let sum = 0;
+  for (let dr = -bound; dr <= bound; dr++) {
+    const dy = (SQ3 / 2) * dr;
+    for (let dq = -bound; dq <= bound; dq++) {
+      const dx = dq + dr / 2;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d >= rad) continue;              // 支撑 |x| < R（论文）
+      const w = core(d / rad, alpha);
+      if (w === 0) continue;
+      const qi = ((dq % W) + W) % W, ri = ((dr % H) + H) % H;
+      sp[ri * W + qi] = w;
+      taps.push(dq, dr, w);
+      sum += w;
+    }
+  }
+  // ΣK = 1（空间核与 taps 同步归一化，保证 FFT 路径与直接卷积一致）
+  if (sum > 0) {
+    for (let i = 0; i < N; i++) sp[i] /= sum;
+    for (let t = 2; t < taps.length; t += 3) taps[t] /= sum;
+  }
+  const re = Float64Array.from(sp), im = new Float64Array(N);
+  fft2d(re, im, W, H, -1);
+  return { re, im, sp, taps, sum };
+}
+
+// 规则参数变化 → 重建对应核；R/α/核类型 → 重建全部
+function rebuildKernels(all) {
+  for (let k = 0; k < rules.length; k++) {
+    if (all || !rules[k].kf) rules[k].kf = buildKernel(rules[k].rad || R);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  生态预设（原版多通道规则列表结构）
+// ════════════════════════════════════════════════════════════════
+const PRESETS = {
+  solo: {
+    ch: 1,
+    rules: [{ src: 0, dst: 0, m: 0.15, s: 0.016, h: 1, g: "gaus" }]
+  },
+  predator: {
+    ch: 2,
+    // 参数经 sweep 调优验证（800 步双物种共存）：
+    // 猎物 = solo 已证参数；压制规则宽而弱 (s=0.15, h=0.35)，否则窄σ猎物
+    // 会边侵蚀边崩塌；捕食者稀疏播种 (initMul)，否则初始高密度压制直接杀死猎物
+    initMul: [1, 0.08],
+    rules: [
+      { src: 0, dst: 0, m: 0.15, s: 0.016, h: 1, g: "gaus", label: "猎物·自持" },
+      { src: 0, dst: 1, m: 0.18, s: 0.060, h: 1, g: "gaus", label: "猎物→捕食" },
+      { src: 1, dst: 1, m: 0.12, s: 0.080, h: 1, g: "gaus", label: "捕食·自持" },
+      { src: 1, dst: 0, m: 0.02, s: 0.150, h: 0.35, g: "gaus", label: "捕食→压制" }
+    ]
+  },
+  compete: {
+    ch: 3,
+    rules: [
+      { src: 0, dst: 0, m: 0.15, s: 0.020, h: 1, g: "gaus", label: "A·自持" },
+      { src: 1, dst: 1, m: 0.15, s: 0.020, h: 1, g: "gaus", label: "B·自持" },
+      { src: 2, dst: 2, m: 0.15, s: 0.020, h: 1, g: "gaus", label: "C·自持" },
+      { src: 1, dst: 0, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "B→压A" },
+      { src: 0, dst: 1, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "A→压B" },
+      { src: 2, dst: 1, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "C→压B" },
+      { src: 1, dst: 2, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "B→压C" },
+      { src: 0, dst: 2, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "A→压C" },
+      { src: 2, dst: 0, m: 0.08, s: 0.040, h: 1, g: "gaus", label: "C→压A" }
+    ]
+  }
+};
+
+function syncSrcChannels() {
+  const s = new Set(rules.map(r => r.src));
+  srcChannels = [...s];
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  CH = p.ch;
+  rules = p.rules.map(r => ({ ...r, rad: R }));
+  curRule = 0; paintCh = 0;
+  initMul = p.initMul || null;
+  allocBuffers();
+  allocBucketBuffers();   // 分桶数组大小依赖 CH（64 或 512），切换时必须重分
+  syncSrcChannels();
+  rebuildKernels(true);
+  randomInit();
+  gen = 0;
+  syncRuleUI();
+  needRender = true;
+}
+
+function allocBuffers() {
+  fields = []; nexts = []; D = []; Dn = []; chFft = [];
+  for (let c = 0; c < CH; c++) {
+    fields.push(new Float64Array(N));
+    nexts.push(new Float64Array(N));
+    D.push(new Float64Array(N));
+    Dn.push(0);
+    chFft.push({ re: new Float64Array(N), im: new Float64Array(N) });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  初始化
+// ════════════════════════════════════════════════════════════════
+function randomInit() {
+  for (let c = 0; c < CH; c++) {
+    const f = fields[c];
+    const d = initMul ? dens * initMul[c] : dens;
+    for (let i = 0; i < N; i++) f[i] = Math.random() < d ? Math.random() : 0;
+  }
+  needRender = true;
+}
+function clearAll() {
+  for (let c = 0; c < CH; c++) fields[c].fill(0);
+  gen = 0; needRender = true;
+}
+
+function loadPattern(name) {
+  const cx = W >> 1, cy = H >> 1;
+  for (let c = 0; c < CH; c++) fields[c].fill(0);
+  const f = fields[paintCh];
+  for (let r = 0; r < H; r++) {
+    for (let q = 0; q < W; q++) {
+      const dx = q - cx + (r - cy) / 2, dy = (SQ3 / 2) * (r - cy);
+      const d = Math.sqrt(dx * dx + dy * dy);
+      let v = 0;
+      if (name === "disk") v = d < R * 1.2 ? Math.random() : 0;
+      else if (name === "ring") v = (d > R * 0.8 && d < R * 1.4) ? Math.random() : 0;
+      else if (name === "stripe") v = (Math.abs(r - cy) < R * 0.6) ? Math.random() : 0;
+      f[q + r * W] = v;
+    }
+  }
+  if (CH > 1) {  // 多物种：其余通道给互补低密度种子
+    for (let c = 0; c < CH; c++) {
+      if (c === paintCh) continue;
+      const g2 = fields[c];
+      for (let i = 0; i < N; i++) if (Math.random() < dens * 0.4) g2[i] = Math.random();
+    }
+  }
+  gen = 0; needRender = true;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  模拟步进（FFT 卷积，与原版 NextGen/calc_once 同构）
+// ════════════════════════════════════════════════════════════════
+const tmpRe = { get() { return this._r; }, set v(x) { this._r = x; } }; // placeholder unused
+let bufRe = null, bufIm = null;
+
+function step() {
+  const t0 = performance.now();
+  if (!bufRe) { bufRe = new Float64Array(N); bufIm = new Float64Array(N); }
+
+  // 需要作为源的通道 → 前向 FFT 缓存
+  for (let u = 0; u < srcChannels.length; u++) {
+    const c = srcChannels[u];
+    const fc = chFft[c];
+    fc.re.set(fields[c]);
+    fc.im.fill(0);
+    fft2d(fc.re, fc.im, W, H, -1);
+  }
+
+  for (let c = 0; c < CH; c++) { D[c].fill(0); Dn[c] = 0; }
+
+  // 每条规则：U = IFFT(FFT(A[src]) ⊙ FFT(K))，D[dst] += h·G(U)
+  for (const rule of rules) {
+    const fc = chFft[rule.src], kf = rule.kf;
+    const re = bufRe, im = bufIm;
+    for (let i = 0; i < N; i++) {
+      re[i] = fc.re[i] * kf.re[i] - fc.im[i] * kf.im[i];
+      im[i] = fc.re[i] * kf.im[i] + fc.im[i] * kf.re[i];
+    }
+    fft2d(re, im, W, H, 1);           // 逆变换（已含 1/N 归一）
+    const G = GROWTHS[rule.g], m = rule.m, s = rule.s, h = rule.h;
+    const d = D[rule.dst];
+    for (let i = 0; i < N; i++) d[i] += h * G(re[i], m, s);
+    Dn[rule.dst] += h;
+  }
+
+  // A' = clip(A + dt·D/Σh, 0, 1)
+  const dt = 1 / T;
+  for (let c = 0; c < CH; c++) {
+    if (Dn[c] <= 0) continue;
+    const f = dt / Dn[c];
+    const a = fields[c], b = nexts[c], d = D[c];
+    for (let i = 0; i < N; i++) {
+      const v = a[i] + f * d[i];
+      b[i] = v < 0 ? 0 : v > 1 ? 1 : v;
+    }
+    fields[c] = b; nexts[c] = a;      // 双缓冲切换
+  }
+  gen++;
+  stepMs = stepMs * 0.9 + (performance.now() - t0) * 0.1;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  渲染：调色板分桶批绘（每帧 ≤64/512 次 fill）
+// ════════════════════════════════════════════════════════════════
+const stage = document.getElementById("stage");
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+let dpr = window.devicePixelRatio || 1;
+const CW = 940, CHH = 640;
+canvas.style.width = CW + "px";
+canvas.style.height = CHH + "px";
+canvas.width = Math.round(CW * dpr);
+canvas.height = Math.round(CHH * dpr);
+
+// 视图（世界坐标：格距 = 1；矩形环绕显示：每行 x = (q + r/2) mod W）
+const view = { x: 0, y: 0, z: 1 };
+function fitView() {
+  const ww = W + 1.2, wh = (SQ3 / 2) * H;   // 矩形包围盒（含半格余量）
+  view.z = Math.min(CW / ww, CHH / wh) * 0.94;
+  view.x = (CW - ww * view.z) / 2 + 0.6 * view.z;
+  view.y = (CHH - wh * view.z) / 2;
+}
+
+// 六角顶点（pointy-top，顶点角 60i+30°），单位外接圆
+const HEXV = [];
+for (let i = 0; i < 6; i++) {
+  const a = (60 * i + 30) * Math.PI / 180;
+  HEXV.push(Math.cos(a), Math.sin(a));
+}
+const HEX_RAD = 0.54;   // 留微缝
+
+// 调色板：单物种 64 档（viridis 风格渐变）；多物种 8³ RGB 桶
+const PAL_N = 64;
+const palSingle = [];
+function makePalSingle() {
+  const stops = [
+    [0.00, 10, 12, 40], [0.30, 40, 90, 160], [0.55, 40, 180, 150],
+    [0.80, 220, 210, 70], [1.00, 255, 255, 240]
+  ];
+  for (let i = 0; i < PAL_N; i++) {
+    const t = i / (PAL_N - 1);
+    let k = 0;
+    while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+    const [t0, r0, g0, b0] = stops[k], [t1, r1, g1, b1] = stops[k + 1];
+    const f = (t - t0) / (t1 - t0);
+    palSingle.push(`rgb(${Math.round(r0 + (r1 - r0) * f)},${Math.round(g0 + (g1 - g0) * f)},${Math.round(b0 + (b1 - b0) * f)})`);
+  }
+}
+makePalSingle();
+
+const palRgb = [];   // 多物种：idx = (r8<<6)|(g8<<3)|b8, r8/g8/b8 ∈ [0,7]
+for (let i = 0; i < 512; i++) {
+  const r = ((i >> 6) & 7) * 255 / 7 | 0;
+  const g = ((i >> 3) & 7) * 255 / 7 | 0;
+  const b = (i & 7) * 255 / 7 | 0;
+  palRgb.push(`rgb(${r},${g},${b})`);
+}
+
+// 分桶计数排序缓冲（复用，避免每帧分配）
+let bucketCnt, bucketStart, order, bucketKey;
+function allocBucketBuffers() {
+  bucketCnt = new Int32Array(CH === 1 ? PAL_N : 512);
+  bucketStart = new Int32Array(bucketCnt.length + 1);
+  order = new Int32Array(N);
+  bucketKey = new Uint16Array(N);
+}
+let needRender = true;
+
+// ═════════════════════════════════════════════════════════════
+//  平滑渲染：场 → 纹理 (W+2)×H（左右各补 1 列环绕像素防接缝）
+//  → 仿射变换（剪切）映射到六角晶格 → drawImage 双线性插值
+//  布局：texel 中心 (i+0.5, j+0.5) → 世界 (i−1 + j/2, (√3/2)·j)
+//  因 texel 坐标带 mod（矩形环绕），需画两份（x=0 与 x=−W）覆盖矩形
+// ═════════════════════════════════════════════════════════════
+const texCanvas = document.createElement("canvas");
+const texCtx = texCanvas.getContext("2d");
+let texImg = null, colMap = null;
+function resizeTexture() {
+  texCanvas.width = W + 2;
+  texCanvas.height = H;
+  texImg = texCtx.createImageData(W + 2, H);
+  colMap = new Int32Array(W + 2);            // texel 列 → 环绕后的格列
+  for (let i = 0; i < W + 2; i++) colMap[i] = ((i - 1) % W + W) % W;
+}
+
+// 连续色带（与上方 palSingle 调色板同源，保持同步）
+const COL_STOPS = [
+  [0.00, 10, 12, 40], [0.30, 40, 90, 160], [0.55, 40, 180, 150],
+  [0.80, 220, 210, 70], [1.00, 255, 255, 240]
+];
+function rampColor(t, out) {
+  if (t < 0) t = 0; else if (t > 1) t = 1;
+  let k = 0;
+  while (k < COL_STOPS.length - 2 && t > COL_STOPS[k + 1][0]) k++;
+  const a = COL_STOPS[k], b = COL_STOPS[k + 1];
+  const f = (t - a[0]) / (b[0] - a[0]);
+  out[0] = (a[1] + (b[1] - a[1]) * f + 0.5) | 0;
+  out[1] = (a[2] + (b[2] - a[2]) * f + 0.5) | 0;
+  out[2] = (a[3] + (b[3] - a[3]) * f + 0.5) | 0;
+}
+const _cc = [0, 0, 0];
+function buildTexture() {
+  const d = texImg.data, w2 = W + 2;
+  if (CH === 1) {
+    const f = fields[0];
+    for (let j = 0; j < H; j++) {
+      const row = j * W, orow = j * w2 * 4;
+      for (let i = 0; i < w2; i++) {
+        rampColor(f[row + colMap[i]], _cc);
+        const p = orow + i * 4;
+        d[p] = _cc[0]; d[p + 1] = _cc[1]; d[p + 2] = _cc[2]; d[p + 3] = 255;
+      }
+    }
+  } else {
+    for (let j = 0; j < H; j++) {
+      const row = j * W, orow = j * w2 * 4;
+      for (let i = 0; i < w2; i++) {
+        const idx = row + colMap[i], p = orow + i * 4;
+        for (let c = 0; c < 3; c++) {
+          if (c < CH) {
+            let v = fields[c][idx]; if (v < 0) v = 0; else if (v > 1) v = 1;
+            d[p + c] = (v * 255 + 0.5) | 0;
+          } else d[p + c] = 0;
+        }
+        d[p + 3] = 255;
+      }
+    }
+  }
+  texCtx.putImageData(texImg, 0, 0);
+}
+
+function renderSmooth() {
+  if (!texImg) resizeTexture();
+  buildTexture();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  // 仿射：(u,v) → 屏幕；worldX = u + v/2 − 1.75, worldY = (√3/2)·v
+  const s = dpr * view.z;
+  ctx.setTransform(s, 0, s / 2, s * SQ3 / 2, dpr * view.x - 1.75 * s, dpr * view.y);
+  ctx.drawImage(texCanvas, 0, 0);          // 主份
+  ctx.drawImage(texCanvas, -W, 0);         // 环绕份：填充每行左侧被 mod 裁开的区域
+}
+
+function drawLegend() {
+  if (CH > 1) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = "11px monospace";
+    for (let c = 0; c < CH; c++) {
+      ctx.fillStyle = CH_COLORS[c];
+      ctx.fillText(`${LETTERS[c]}=ch${c}${c === paintCh ? " ●绘制中" : ""}`, 10 + c * 90, CHH - 10);
+    }
+  }
+}
+
+function render() {
+  if (viewMode === "smooth") { renderSmooth(); drawLegend(); return; }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(dpr * view.z, 0, 0, dpr * view.z, dpr * view.x, dpr * view.y);
+
+  const buckets = bucketCnt.length;
+  bucketCnt.fill(0);
+
+  // 1. 量化每格颜色 → 桶键
+  if (CH === 1) {
+    const f = fields[0];
+    for (let i = 0; i < N; i++) {
+      let v = f[i]; if (v < 0) v = 0; else if (v > 1) v = 1;
+      const k = (v * (PAL_N - 1) + 0.5) | 0;
+      bucketKey[i] = k; bucketCnt[k]++;
+    }
+  } else {
+    bucketKey.fill(0);      // 必须清零：否则残留上一帧/单物种的键位（含低位 → 错色）
+    for (let c = 0; c < CH; c++) {
+      const f = fields[c];
+      for (let i = 0; i < N; i++) {
+        let v = f[i]; if (v < 0) v = 0; else if (v > 1) v = 1;
+        bucketKey[i] |= ((v * 7 + 0.5) | 0) << (6 - 3 * c);
+      }
+    }
+    for (let i = 0; i < N; i++) bucketCnt[bucketKey[i]]++;
+  }
+
+  // 2. 前缀和 → 桶起始
+  let acc = 0;
+  for (let k = 0; k < buckets; k++) { bucketStart[k] = acc; acc += bucketCnt[k]; }
+  bucketStart[buckets] = acc;
+
+  // 3. 散射到 order（计数排序）
+  if (CH === 1) {
+    for (let i = 0; i < N; i++) order[bucketStart[bucketKey[i]]++] = i;
+  } else {
+    for (let i = 0; i < N; i++) order[bucketStart[bucketKey[i]]++] = i;
+  }
+  // 还原 bucketStart（下一步按桶遍历需要起点）
+  acc = 0;
+  for (let k = 0; k < buckets; k++) { bucketStart[k] = acc; acc += bucketCnt[k]; }
+
+  // 4. 按桶批量绘制
+  const pal = CH === 1 ? palSingle : palRgb;
+  const rad = HEX_RAD;
+  for (let k = 0; k < buckets; k++) {
+    const s0 = bucketStart[k], s1 = s0 + bucketCnt[k];
+    if (s0 === s1) continue;
+    ctx.fillStyle = pal[k];
+    ctx.beginPath();
+    for (let p = s0; p < s1; p++) {
+      const i = order[p];
+      const q = i % W, r = (i / W) | 0;
+      let cx = q + r / 2;
+      if (cx >= W) cx -= W;               // 矩形环绕（与平滑模式同布局）
+      const cy = (SQ3 / 2) * r;
+      ctx.moveTo(cx + HEXV[0] * rad, cy + HEXV[1] * rad);
+      for (let v = 1; v < 6; v++) ctx.lineTo(cx + HEXV[2 * v] * rad, cy + HEXV[2 * v + 1] * rad);
+      ctx.closePath();
+    }
+    ctx.fill();
+  }
+
+  drawLegend();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  坐标换算 / 绘制
+// ════════════════════════════════════════════════════════════════
+function screenToWorld(sx, sy) { return [(sx - view.x) / view.z, (sy - view.y) / view.z]; }
+function worldToAxial(wx, wy) {
+  const r = wy / (SQ3 / 2);
+  const q = wx - r / 2;
+  // cube rounding
+  let x = q, z = r, y = -x - z;
+  let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+  const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
+  if (dx > dy && dx > dz) rx = -ry - rz;
+  else if (dy > dz) ry = -rx - rz;
+  else rz = -rx - ry;
+  return [rx, rz];
+}
+function paintAt(sx, sy, erase) {
+  const [wx, wy] = screenToWorld(sx, sy);
+  const [q0, r0] = worldToAxial(wx, wy);
+  const f = fields[paintCh];
+  const b = brushR;
+  for (let dr = -b; dr <= b; dr++) {
+    for (let dq = -b; dq <= b; dq++) {
+      const dx = dq + dr / 2, dy = (SQ3 / 2) * dr;
+      if (dx * dx + dy * dy > b * b + 0.01) continue;
+      const q = ((q0 + dq) % W + W) % W, r = ((r0 + dr) % H + H) % H;
+      f[q + r * W] = erase ? 0 : 1;
+    }
+  }
+  needRender = true;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  鼠标交互
+// ════════════════════════════════════════════════════════════════
+let dragging = 0, lastX = 0, lastY = 0, painting = false;
+stage.addEventListener("contextmenu", e => e.preventDefault());
+stage.addEventListener("mousedown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  if (e.button === 1 || e.button === 2 || e.shiftKey) {
+    dragging = e.button + 1; lastX = e.clientX; lastY = e.clientY;
+    stage.classList.add("panning");
+    e.preventDefault();
+  } else if (e.button === 0) {
+    painting = true;
+    paintAt(sx, sy, e.altKey);
+  }
+});
+window.addEventListener("mousemove", e => {
+  if (dragging) {
+    view.x += e.clientX - lastX; view.y += e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    needRender = true;
+  } else if (painting) {
+    const rect = canvas.getBoundingClientRect();
+    paintAt(e.clientX - rect.left, e.clientY - rect.top, e.altKey);
+  }
+});
+window.addEventListener("mouseup", () => { dragging = 0; painting = false; stage.classList.remove("panning"); });
+stage.addEventListener("wheel", e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  const [wx, wy] = screenToWorld(sx, sy);
+  const f = Math.pow(1.0015, -e.deltaY);
+  view.z = Math.min(40, Math.max(0.5, view.z * f));
+  view.x = sx - wx * view.z;
+  view.y = sy - wy * view.z;
+  needRender = true;
+}, { passive: false });
+
+window.addEventListener("keydown", e => {
+  if (e.code === "Space" && e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT") {
+    e.preventDefault(); toggleRun();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  截图导出（3× 高清 + 信息栏）
+// ════════════════════════════════════════════════════════════════
+function screenshot() {
+  const scale = 3;
+  const ow = Math.round(CW * scale), oh = Math.round((CHH + 26) * scale);
+  const oc = document.createElement("canvas");
+  oc.width = ow; oc.height = oh;
+  const ox = oc.getContext("2d");
+  ox.fillStyle = "#050508";
+  ox.fillRect(0, 0, ow, oh);
+  ox.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, CW * scale, CHH * scale);
+  // 信息栏
+  ox.fillStyle = "#101026";
+  ox.fillRect(0, CHH * scale, ow, 26 * scale);
+  ox.fillStyle = "#8cf";
+  ox.font = `${13 * scale / 2}px monospace`;
+  const statsTxt = document.getElementById("stats").textContent.replace(/\s+/g, " ");
+  ox.fillText(`hexLenia | ${W}×${H} | gen=${gen} | ${new Date().toLocaleString("zh-CN")} | ${statsTxt}`, 12, CHH * scale + 17 * scale / 2 + 2);
+  const link = document.createElement("a");
+  link.download = `hexlenia-${Date.now()}.png`;
+  link.href = oc.toDataURL("image/png");
+  link.click();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  自检：FFT 卷积 vs 直接卷积（六角环面），返回最大误差
+// ════════════════════════════════════════════════════════════════
+function selfTest() {
+  const A = new Float64Array(N);
+  for (let i = 0; i < N; i++) A[i] = Math.random();
+  const kf = buildKernel(Math.min(5, R));
+  // FFT 路径
+  const fr = Float64Array.from(A), fi = new Float64Array(N);
+  fft2d(fr, fi, W, H, -1);
+  const tr = new Float64Array(N), ti = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    tr[i] = fr[i] * kf.re[i] - fi[i] * kf.im[i];
+    ti[i] = fr[i] * kf.im[i] + fi[i] * kf.re[i];
+  }
+  fft2d(tr, ti, W, H, 1);
+  // 直接路径（kernels taps）
+  const naive = new Float64Array(N);
+  const tp = kf.taps;
+  for (let r = 0; r < H; r++) {
+    for (let q = 0; q < W; q++) {
+      let u = 0;
+      for (let t = 0; t < tp.length; t += 3) {
+        const dq = tp[t], dr = tp[t + 1], w = tp[t + 2];
+        const q2 = (((q + dq) % W) + W) % W, r2 = (((r + dr) % H) + H) % H;
+        u += w * A[q2 + r2 * W];
+      }
+      naive[q + r * W] = u;
+    }
+  }
+  let maxErr = 0;
+  for (let i = 0; i < N; i++) maxErr = Math.max(maxErr, Math.abs(tr[i] - naive[i]));
+  return { maxErr, taps: tp.length / 3, pass: maxErr < 1e-9 };
+}
+window.__selfTest = selfTest;
+
+// ════════════════════════════════════════════════════════════════
+//  UI 绑定
+// ════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const btnRun = $("btnRun");
+
+function toggleRun() {
+  running = !running;
+  btnRun.textContent = running ? "⏸ 暂停" : "▶ 继续";
+  btnRun.classList.toggle("run", running);
+}
+btnRun.addEventListener("click", toggleRun);
+$("btnStep").addEventListener("click", () => { if (running) toggleRun(); step(); needRender = true; });
+$("btnRandom").addEventListener("click", () => { randomInit(); gen = 0; });
+$("btnClear").addEventListener("click", clearAll);
+$("btnShot").addEventListener("click", screenshot);
+$("selPattern").addEventListener("change", e => { if (e.target.value) loadPattern(e.target.value); });
+$("selView").addEventListener("change", e => { viewMode = e.target.value; needRender = true; });
+$("btnHelp").addEventListener("click", () => {
+  const h = $("help"), on = h.style.display === "block";
+  h.style.display = on ? "none" : "block";
+  $("btnHelp").classList.toggle("active", !on);
+});
+
+function bindSlider(id, vid, fn, fmt) {
+  const el = $(id), lab = $(vid);
+  el.addEventListener("input", () => {
+    const v = parseFloat(el.value);
+    lab.textContent = fmt ? fmt(v) : v;
+    fn(v);
+  });
+}
+bindSlider("sR", "vR", v => { R = v; rebuildKernels(true); }, v => v.toFixed(0));
+bindSlider("sM", "vM", v => { if (rules[curRule]) rules[curRule].m = v; }, v => v.toFixed(3));
+bindSlider("sS", "vS", v => { if (rules[curRule]) rules[curRule].s = v; }, v => v.toFixed(3));
+bindSlider("sT", "vT", v => { T = v; }, v => v.toFixed(0));
+bindSlider("sA", "vA", v => { alpha = v; rebuildKernels(true); }, v => v.toFixed(0));
+bindSlider("sSpeed", "vSpeed", v => { speed = v; }, v => v + "/s");
+bindSlider("sDens", "vDens", v => { dens = v; }, v => v.toFixed(2));
+bindSlider("sBrush", "vBrush", v => { brushR = v; }, v => v.toFixed(0));
+
+$("selCore").addEventListener("change", e => { coreType = e.target.value; rebuildKernels(true); });
+$("selGrow").addEventListener("change", e => { if (rules[curRule]) rules[curRule].g = e.target.value; });
+$("selEco").addEventListener("change", e => applyPreset(e.target.value));
+$("selGrid").addEventListener("change", e => {
+  W = H = parseInt(e.target.value, 10);
+  N = W * H;
+  allocBuffers();
+  allocBucketBuffers();
+  resizeTexture();
+  rebuildKernels(true);
+  randomInit();
+  gen = 0;
+  fitView();
+  needRender = true;
+});
+
+// 规则 chips + 物种绘制选择
+function syncRuleUI() {
+  const chips = $("ruleChips");
+  chips.innerHTML = "";
+  if (rules.length > 1) {
+    rules.forEach((r, i) => {
+      const b = document.createElement("button");
+      b.className = "btn chip" + (i === curRule ? " active" : "");
+      const lb = r.label || `${LETTERS[r.src]}→${LETTERS[r.dst]}`;
+      b.innerHTML = `<span class="swatch" style="background:${CH_COLORS[r.dst]}"></span>${lb}`;
+      b.addEventListener("click", () => { curRule = i; syncRuleUI(); syncParamUI(); });
+      chips.appendChild(b);
+    });
+  }
+  const cs = $("chSel");
+  cs.innerHTML = "";
+  if (CH > 1) {
+    for (let c = 0; c < CH; c++) {
+      const b = document.createElement("button");
+      b.className = "btn chip" + (c === paintCh ? " active" : "");
+      b.textContent = "绘制 " + LETTERS[c];
+      b.addEventListener("click", () => { paintCh = c; syncRuleUI(); needRender = true; });
+      cs.appendChild(b);
+    }
+  }
+}
+function syncParamUI() {
+  const r = rules[curRule];
+  if (!r) return;
+  $("sM").value = r.m; $("vM").textContent = r.m.toFixed(3);
+  $("sS").value = r.s; $("vS").textContent = r.s.toFixed(3);
+  $("selGrow").value = r.g;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  主循环
+// ════════════════════════════════════════════════════════════════
+let lastTs = 0, acc = 0;
+let fpsFrames = 0, fpsLast = 0, fps = 0;
+let statLast = 0;
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  fpsFrames++;
+  if (ts - fpsLast >= 1000) {
+    fps = Math.round(fpsFrames * 1000 / (ts - fpsLast));
+    fpsFrames = 0; fpsLast = ts;
+  }
+  const dtMs = lastTs ? ts - lastTs : 16;
+  lastTs = ts;
+
+  if (running) {
+    acc += dtMs;
+    const interval = 1000 / speed;
+    if (acc > interval * 4) acc = interval * 4;   // 丢弃积压，防“追帧雪崩”
+    let steps = 0;
+    const cap = stepMs > 8 ? 3 : 8;               // 慢机自适应：降每帧步数保流畅
+    while (acc >= interval && steps < cap) { step(); acc -= interval; steps++; }
+    if (steps > 0) needRender = true;
+  } else acc = 0;
+
+  if (needRender) { render(); needRender = false; }
+
+  if (ts - statLast >= 500) { updateStats(); statLast = ts; }
+}
+
+function updateStats() {
+  let total = 0;
+  for (let c = 0; c < CH; c++) { const f = fields[c]; for (let i = 0; i < N; i++) total += f[i]; }
+  const avg = total / N;
+  document.getElementById("stats").innerHTML =
+    `代数 <b>${gen}</b> <span class="sep">|</span> FPS <b>${fps}</b> ` +
+    `<span class="sep">|</span> 步进 <b>${stepMs.toFixed(1)}ms</b> ` +
+    `<span class="sep">|</span> 平均活性 <b>${avg.toFixed(3)}</b> ` +
+    `<span class="sep">|</span> 物种 <b>${CH}</b> · 规则 <b>${rules.length}</b> ` +
+    `<span class="sep">|</span> 缩放 <b>${view.z.toFixed(2)}x</b>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  启动
+// ════════════════════════════════════════════════════════════════
+applyPreset("solo");
+allocBucketBuffers();
+resizeTexture();
+fitView();
+syncRuleUI();
+syncParamUI();
+randomInit();
+needRender = true;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
