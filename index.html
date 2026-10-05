@@ -496,12 +496,16 @@ canvas.width = Math.round(CW * dpr);
 canvas.height = Math.round(CHH * dpr);
 
 // 视图（世界坐标：格距 = 1；矩形环绕显示：每行 x = (q + r/2) mod W）
+// 内容框：x ∈ [−0.5, W+0.25]（右缘取平滑主份的最小覆盖，保证零缝隙），y ∈ [0, H·√3/2]
 const view = { x: 0, y: 0, z: 1 };
+function contentBox() {
+  return { x0: -0.5, y0: 0, w: W + 0.75, h: (SQ3 / 2) * H };
+}
 function fitView() {
-  const ww = W + 1.2, wh = (SQ3 / 2) * H;   // 矩形包围盒（含半格余量）
-  view.z = Math.min(CW / ww, CHH / wh) * 0.94;
-  view.x = (CW - ww * view.z) / 2 + 0.6 * view.z;
-  view.y = (CHH - wh * view.z) / 2;
+  const b = contentBox();
+  view.z = Math.min(CW / b.w, CHH / b.h) * 0.94;
+  view.x = (CW - b.w * view.z) / 2 - b.x0 * view.z;
+  view.y = (CHH - b.h * view.z) / 2 - b.y0 * view.z;
 }
 
 // 六角顶点（pointy-top，顶点角 60i+30°），单位外接圆
@@ -620,11 +624,19 @@ function renderSmooth() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
+  // 裁剪到内容框：避免主份的未环绕溢出/环绕份的越界像素落进留白区
+  const b = contentBox();
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(dpr * (view.x + b.x0 * view.z), dpr * (view.y + b.y0 * view.z),
+           dpr * b.w * view.z, dpr * b.h * view.z);
+  ctx.clip();
   // 仿射：(u,v) → 屏幕；worldX = u + v/2 − 1.75, worldY = (√3/2)·v
   const s = dpr * view.z;
   ctx.setTransform(s, 0, s / 2, s * SQ3 / 2, dpr * view.x - 1.75 * s, dpr * view.y);
   ctx.drawImage(texCanvas, 0, 0);          // 主份
   ctx.drawImage(texCanvas, -W, 0);         // 环绕份：填充每行左侧被 mod 裁开的区域
+  ctx.restore();
 }
 
 function drawLegend() {
