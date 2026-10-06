@@ -387,6 +387,7 @@ function allocBuffers() {
     Dn.push(0);
     chFft.push({ re: new Float64Array(N), im: new Float64Array(N) });
   }
+  texDirty = true;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -398,11 +399,12 @@ function randomInit() {
     const d = initMul ? dens * initMul[c] : dens;
     for (let i = 0; i < N; i++) f[i] = Math.random() < d ? Math.random() : 0;
   }
+  texDirty = true;
   needRender = true;
 }
 function clearAll() {
   for (let c = 0; c < CH; c++) fields[c].fill(0);
-  gen = 0; needRender = true;
+  gen = 0; texDirty = true; needRender = true;
 }
 
 function loadPattern(name) {
@@ -427,7 +429,7 @@ function loadPattern(name) {
       for (let i = 0; i < N; i++) if (Math.random() < dens * 0.4) g2[i] = Math.random();
     }
   }
-  gen = 0; needRender = true;
+  gen = 0; texDirty = true; needRender = true;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -479,6 +481,7 @@ function step() {
     fields[c] = b; nexts[c] = a;      // 双缓冲切换
   }
   gen++;
+  texDirty = true;
   stepMs = stepMs * 0.9 + (performance.now() - t0) * 0.1;
 }
 
@@ -561,13 +564,32 @@ let needRender = true;
 // ═════════════════════════════════════════════════════════════
 const texCanvas = document.createElement("canvas");
 const texCtx = texCanvas.getContext("2d");
-let texImg = null, colMap = null;
+let texImg = null, texScale = 1, texDirty = true;
+let crW = null, crTap = null;   // Catmull-Rom 权重/抽头偏移（每相位 4 个）
+let tmpF = null;                // 水平插值中间缓冲
 function resizeTexture() {
-  texCanvas.width = W + 2;
-  texCanvas.height = H;
-  texImg = texCtx.createImageData(W + 2, H);
-  colMap = new Int32Array(W + 2);            // texel 列 → 环绕后的格列
-  for (let i = 0; i < W + 2; i++) colMap[i] = ((i - 1) % W + W) % W;
+  // 纹理分辨率：目标 ≤ ~512，再交给 GPU 补最后一段 → 双三次预锐化
+  texScale = Math.max(1, Math.min(8, Math.floor(512 / W)));
+  const s = texScale;
+  texCanvas.width = (W + 2) * s;
+  texCanvas.height = H * s;
+  texImg = texCtx.createImageData(texCanvas.width, texCanvas.height);
+  // Catmull-Rom：输出像素 I → 源坐标 u = (I+0.5)/s − 1（样本点=格 q 整数坐标）
+  // 分解 I = m·s + p：抽头 = m + tapOff[p][k]，权重只依赖相位 p
+  crW = new Float64Array(s * 4);
+  crTap = new Int32Array(s * 4);
+  for (let p = 0; p < s; p++) {
+    const t = (p + 0.5) / s - 0.5;
+    const i1 = Math.floor(t), f = t - i1;
+    const f2 = f * f, f3 = f2 * f;
+    crW[p * 4 + 0] = -0.5 * f3 + f2 - 0.5 * f;
+    crW[p * 4 + 1] = 1.5 * f3 - 2.5 * f2 + 1;
+    crW[p * 4 + 2] = -1.5 * f3 + 2 * f2 + 0.5 * f;
+    crW[p * 4 + 3] = 0.5 * f3 - 0.5 * f2;
+    for (let k = 0; k < 4; k++) crTap[p * 4 + k] = i1 - 1 + k;  // −1：坐标系平移（格 q）
+  }
+  tmpF = new Float32Array(H * (W + 2) * s * 3);   // CH≤3 余量
+  texDirty = true;
 }
 
 // 连续色带（与上方 palSingle 调色板同源，保持同步）
@@ -586,30 +608,100 @@ function rampColor(t, out) {
   out[2] = (a[3] + (b[3] - a[3]) * f + 0.5) | 0;
 }
 const _cc = [0, 0, 0];
+// 色带 LUT：1024 档预计算，buildTexture 内免去逐像素 rampColor 循环
+const RAMP_LUT = new Uint8Array(1024 * 3);
+for (let i = 0; i < 1024; i++) {
+  rampColor(i / 1023, _cc);
+  RAMP_LUT[i * 3] = _cc[0]; RAMP_LUT[i * 3 + 1] = _cc[1]; RAMP_LUT[i * 3 + 2] = _cc[2];
+}
+// 双三次（Catmull-Rom）可分离两遍：水平（带左右环绕）→ 垂直（带上下环绕）
+// 输出 (W+2)s × Hs，s = texScale；比双线性保边明显更锐，且跨环面接缝平滑
 function buildTexture() {
-  const d = texImg.data, w2 = W + 2;
+  const s = texScale, Wout = (W + 2) * s, Hout = H * s;
+  const d = texImg.data;
   if (CH === 1) {
-    const f = fields[0];
+    // ---- 水平 pass（单物种专用，无分支）----
+    const F = fields[0];
     for (let j = 0; j < H; j++) {
-      const row = j * W, orow = j * w2 * 4;
-      for (let i = 0; i < w2; i++) {
-        rampColor(f[row + colMap[i]], _cc);
-        const p = orow + i * 4;
-        d[p] = _cc[0]; d[p + 1] = _cc[1]; d[p + 2] = _cc[2]; d[p + 3] = 255;
+      const trow = j * Wout, brow = j * W;
+      for (let I = 0; I < Wout; I++) {
+        const p = I % s, m = (I - p) / s, b4 = p * 4;
+        let a = 0;
+        for (let k = 0; k < 4; k++) {
+          const w = crW[b4 + k];
+          if (w === 0) continue;
+          let q = m + crTap[b4 + k];
+          if (q >= W) q -= W; else if (q < 0) q += W;
+          a += w * F[q + brow];
+        }
+        tmpF[trow + I] = a;
+      }
+    }
+    // ---- 垂直 pass → 纹理（LUT 上色）----
+    for (let J = 0; J < Hout; J++) {
+      const p = J % s, m = (J - p) / s, b4 = p * 4;
+      const r0 = m + crTap[b4], r1 = m + crTap[b4 + 1], r2 = m + crTap[b4 + 2], r3 = m + crTap[b4 + 3];
+      const rr0 = (r0 >= H ? r0 - H : r0 < 0 ? r0 + H : r0) * Wout;
+      const rr1 = (r1 >= H ? r1 - H : r1 < 0 ? r1 + H : r1) * Wout;
+      const rr2 = (r2 >= H ? r2 - H : r2 < 0 ? r2 + H : r2) * Wout;
+      const rr3 = (r3 >= H ? r3 - H : r3 < 0 ? r3 + H : r3) * Wout;
+      const w0 = crW[b4], w1 = crW[b4 + 1], w2 = crW[b4 + 2], w3 = crW[b4 + 3];
+      const orow = J * Wout * 4;
+      for (let I = 0; I < Wout; I++) {
+        let v = 0;
+        if (w0) v += w0 * tmpF[rr0 + I];
+        if (w1) v += w1 * tmpF[rr1 + I];
+        if (w2) v += w2 * tmpF[rr2 + I];
+        if (w3) v += w3 * tmpF[rr3 + I];
+        const e = v <= 0 ? 0 : v >= 1 ? 3069 : (v * 1023) | 0;   // 1023×3 = 3069
+        const P = orow + I * 4, L = e * 3;
+        d[P] = RAMP_LUT[L]; d[P + 1] = RAMP_LUT[L + 1]; d[P + 2] = RAMP_LUT[L + 2]; d[P + 3] = 255;
       }
     }
   } else {
+    // ---- 多物种：水平 ----
     for (let j = 0; j < H; j++) {
-      const row = j * W, orow = j * w2 * 4;
-      for (let i = 0; i < w2; i++) {
-        const idx = row + colMap[i], p = orow + i * 4;
-        for (let c = 0; c < 3; c++) {
-          if (c < CH) {
-            let v = fields[c][idx]; if (v < 0) v = 0; else if (v > 1) v = 1;
-            d[p + c] = (v * 255 + 0.5) | 0;
-          } else d[p + c] = 0;
+      const trow = j * Wout * CH;
+      for (let I = 0; I < Wout; I++) {
+        const p = I % s, m = (I - p) / s, b4 = p * 4;
+        let a0 = 0, a1 = 0, a2 = 0;
+        for (let k = 0; k < 4; k++) {
+          const w = crW[b4 + k];
+          if (w === 0) continue;
+          let q = m + crTap[b4 + k];
+          if (q >= W) q -= W; else if (q < 0) q += W;
+          const idx = q + j * W;
+          a0 += w * fields[0][idx];
+          if (CH > 1) a1 += w * fields[1][idx];
+          if (CH > 2) a2 += w * fields[2][idx];
         }
-        d[p + 3] = 255;
+        const t2 = trow + I * CH;
+        tmpF[t2] = a0;
+        if (CH > 1) { tmpF[t2 + 1] = a1; if (CH > 2) tmpF[t2 + 2] = a2; }
+      }
+    }
+    // ---- 多物种：垂直 ----
+    for (let J = 0; J < Hout; J++) {
+      const p = J % s, m = (J - p) / s, b4 = p * 4;
+      const r0 = m + crTap[b4], r1 = m + crTap[b4 + 1], r2 = m + crTap[b4 + 2], r3 = m + crTap[b4 + 3];
+      const rr0 = (r0 >= H ? r0 - H : r0 < 0 ? r0 + H : r0) * Wout * CH;
+      const rr1 = (r1 >= H ? r1 - H : r1 < 0 ? r1 + H : r1) * Wout * CH;
+      const rr2 = (r2 >= H ? r2 - H : r2 < 0 ? r2 + H : r2) * Wout * CH;
+      const rr3 = (r3 >= H ? r3 - H : r3 < 0 ? r3 + H : r3) * Wout * CH;
+      const w0 = crW[b4], w1 = crW[b4 + 1], w2 = crW[b4 + 2], w3 = crW[b4 + 3];
+      const orow = J * Wout * 4;
+      for (let I = 0; I < Wout; I++) {
+        const off = I * CH;
+        let v0 = 0, v1 = 0, v2 = 0;
+        if (w0) { const b = rr0 + off; v0 += w0 * tmpF[b]; if (CH > 1) v1 += w0 * tmpF[b + 1]; if (CH > 2) v2 += w0 * tmpF[b + 2]; }
+        if (w1) { const b = rr1 + off; v0 += w1 * tmpF[b]; if (CH > 1) v1 += w1 * tmpF[b + 1]; if (CH > 2) v2 += w1 * tmpF[b + 2]; }
+        if (w2) { const b = rr2 + off; v0 += w2 * tmpF[b]; if (CH > 1) v1 += w2 * tmpF[b + 1]; if (CH > 2) v2 += w2 * tmpF[b + 2]; }
+        if (w3) { const b = rr3 + off; v0 += w3 * tmpF[b]; if (CH > 1) v1 += w3 * tmpF[b + 1]; if (CH > 2) v2 += w3 * tmpF[b + 2]; }
+        const P = orow + I * 4;
+        d[P]     = v0 <= 0 ? 0 : v0 >= 1 ? 255 : (v0 * 255 + 0.5) | 0;
+        d[P + 1] = v1 <= 0 ? 0 : v1 >= 1 ? 255 : (v1 * 255 + 0.5) | 0;
+        d[P + 2] = v2 <= 0 ? 0 : v2 >= 1 ? 255 : (v2 * 255 + 0.5) | 0;
+        d[P + 3] = 255;
       }
     }
   }
@@ -618,7 +710,7 @@ function buildTexture() {
 
 function renderSmooth() {
   if (!texImg) resizeTexture();
-  buildTexture();
+  if (texDirty) { buildTexture(); texDirty = false; }   // 仅场变化时重建（缩放/平移不重建）
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#050508";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -631,11 +723,11 @@ function renderSmooth() {
   ctx.rect(dpr * (view.x + b.x0 * view.z), dpr * (view.y + b.y0 * view.z),
            dpr * b.w * view.z, dpr * b.h * view.z);
   ctx.clip();
-  // 仿射：(u,v) → 屏幕；worldX = u + v/2 − 1.75, worldY = (√3/2)·v
-  const s = dpr * view.z;
-  ctx.setTransform(s, 0, s / 2, s * SQ3 / 2, dpr * view.x - 1.75 * s, dpr * view.y);
-  ctx.drawImage(texCanvas, 0, 0);          // 主份
-  ctx.drawImage(texCanvas, -W, 0);         // 环绕份：填充每行左侧被 mod 裁开的区域
+  // 仿射：输出像素 (I,J) → 世界；X = I/s + J/2s − 1.75, Y = (√3/2s)·J
+  const a = dpr * view.z / texScale;
+  ctx.setTransform(a, 0, a / 2, a * SQ3 / 2, dpr * (view.x - 1.75 * view.z), dpr * view.y);
+  ctx.drawImage(texCanvas, 0, 0);                 // 主份
+  ctx.drawImage(texCanvas, -W * texScale, 0);     // 环绕份：填充每行左侧被 mod 裁开的区域
   ctx.restore();
 }
 
@@ -748,6 +840,7 @@ function paintAt(sx, sy, erase) {
       f[q + r * W] = erase ? 0 : 1;
     }
   }
+  texDirty = true;
   needRender = true;
 }
 
