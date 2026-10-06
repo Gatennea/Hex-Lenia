@@ -30,7 +30,8 @@ const els = {};
 const document = {
   getElementById(id) { if (!els[id]) els[id] = makeEl(); return els[id]; },
   createElement() { return makeEl(); },
-  addEventListener(){}
+  addEventListener(){},
+  body: { classList: { toggle() {}, add() {}, remove() {} } }
 };
 const window = {
   devicePixelRatio: 1,
