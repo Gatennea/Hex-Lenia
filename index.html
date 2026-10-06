@@ -106,6 +106,7 @@ body.light .plotbox span { color: #069; }
     <option value="ring">圆环</option>
     <option value="stripe">条纹</option>
   </select>
+  <div class="param" title="印章旋转角度：放置前将图案旋转任意角度（非 60° 倍数会双线性重采样回六角格，形态可能突变/转向/死亡）；对水母与条纹生效"><label>旋转</label><input type="range" id="sRot" min="0" max="355" step="5" value="0"><span class="val" id="vRot">0°</span></div>
   <select id="selParam" title="参数预设：扫参实测的稳定参数带（R=10 时 μ∈[0.13,0.17] 稳定；μ≥0.2 配窄σ必死）">
     <option value="">— 参数 —</option>
     <option value="classic">参数·经典蠕虫</option>
@@ -485,37 +486,104 @@ function applyJellyParams() {
   syncParamUI();
 }
 function placeJelly(cx, cy) {
-  const u8 = b64ToU8(CREATURE_JELLY), w = 22, h = 22;
-  const x0 = cx - (w >> 1), y0 = cy - (h >> 1);
+  stampBitmap(patternBitmap("jelly"), cx, cy);
+}
+
+// 图案位图（局部坐标，中心 ≈ ((w-1)/2, (h-1)/2)）
+function patternBitmap(name) {
+  if (name === "jelly") {
+    const u8 = b64ToU8(CREATURE_JELLY), w = 22, h = 22;
+    const data = new Float64Array(w * h);
+    for (let i = 0; i < w * h; i++) data[i] = u8[i] / 100;
+    return { w, h, data };
+  }
+  if (name === "disk") {
+    const rad = R * 1.2, s = Math.ceil(rad) + 1, w = 2 * s + 1;
+    const data = new Float64Array(w * w);
+    for (let r = 0; r < w; r++) for (let q = 0; q < w; q++) {
+      const dx = q - s + (r - s) / 2, dy = (SQ3 / 2) * (r - s);
+      if (dx * dx + dy * dy < rad * rad) data[q + r * w] = Math.random();
+    }
+    return { w, h: w, data };
+  }
+  if (name === "ring") {
+    const r1 = R * 0.8, r2 = R * 1.4, s = Math.ceil(r2) + 1, w = 2 * s + 1;
+    const data = new Float64Array(w * w);
+    for (let r = 0; r < w; r++) for (let q = 0; q < w; q++) {
+      const dx = q - s + (r - s) / 2, dy = (SQ3 / 2) * (r - s);
+      const d2 = dx * dx + dy * dy;
+      if (d2 > r1 * r1 && d2 < r2 * r2) data[q + r * w] = Math.random();
+    }
+    return { w, h: w, data };
+  }
+  if (name === "stripe") {
+    const bh = Math.max(1, Math.ceil(R * 0.6) - 1), w = W, h = 2 * bh + 1;
+    const data = new Float64Array(w * h);
+    for (let i = 0; i < w * h; i++) data[i] = Math.random();
+    return { w, h, data };
+  }
+  return null;
+}
+
+// CG 旋转：在六角笛卡尔平面旋转（视觉真实角度），反向映射 + 双线性重采样回晶格
+// 绕整数格点（保证 60° 倍数时晶格自同构近乎无损）
+function rotateBitmap(bm, deg) {
+  if (!deg) return bm;
+  const a = deg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+  const H3 = SQ3 / 2;
+  const cx0 = Math.round((bm.w - 1) / 2), cy0 = Math.round((bm.h - 1) / 2);  // 旋转中心=格点
+  const Cx = cx0 + cy0 / 2, Cy = H3 * cy0;                                    // 中心的笛卡尔坐标
+  // 源晶格（平行四边形）四角 → 旋转 → AABB（绝对笛卡尔）
+  const corners = [[0, 0], [bm.w - 1, 0], [0, bm.h - 1], [bm.w - 1, bm.h - 1]];
+  let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+  for (const [i, j] of corners) {
+    const x = (i + j / 2) - Cx, y = H3 * j - Cy;
+    const rx = x * ca - y * sa, ry = x * sa + y * ca;
+    if (rx < minx) minx = rx; if (rx > maxx) maxx = rx;
+    if (ry < miny) miny = ry; if (ry > maxy) maxy = ry;
+  }
+  minx += Cx; maxx += Cx; miny += Cy; maxy += Cy;
+  // 输出轴向包围：J = Y/H3, I = X − J/2
+  const j0 = Math.floor(miny / H3), j1 = Math.ceil(maxy / H3);
+  const i0 = Math.floor(minx - j1 / 2), i1 = Math.ceil(maxx - j0 / 2);
+  const w = i1 - i0 + 1, h = j1 - j0 + 1;
+  const data = new Float64Array(w * h);
+  const src = (i, j) => (i < 0 || i >= bm.w || j < 0 || j >= bm.h) ? 0 : bm.data[i + j * bm.w];
+  for (let jj = 0; jj < h; jj++) {
+    const J = j0 + jj, Y = H3 * J;
+    for (let ii = 0; ii < w; ii++) {
+      const I = i0 + ii, X = I + J / 2;
+      // 反向旋转回源笛卡尔 → 源轴向分数坐标 → 双线性
+      const dx = X - Cx, dy = Y - Cy;
+      const qx = dx * ca + dy * sa + Cx, qy = -dx * sa + dy * ca + Cy;
+      const rf = qy / H3, qf = qx - rf / 2;
+      const i1s = Math.floor(qf), j1s = Math.floor(rf);
+      const fx = qf - i1s, fy = rf - j1s;
+      const v = src(i1s,j1s)*(1-fx)*(1-fy) + src(i1s+1,j1s)*fx*(1-fy) + src(i1s,j1s+1)*(1-fx)*fy + src(i1s+1,j1s+1)*fx*fy;
+      if (v > 0.004) data[ii + jj * w] = v;
+    }
+  }
+  return { w, h, data };
+}
+
+function stampBitmap(bm, cx, cy) {
   const f = fields[paintCh];
-  for (let r = 0; r < h; r++) for (let q = 0; q < w; q++) {
-    const v = u8[r * w + q];
+  const x0 = cx - ((bm.w - 1) >> 1), y0 = cy - ((bm.h - 1) >> 1);
+  for (let r = 0; r < bm.h; r++) for (let q = 0; q < bm.w; q++) {
+    const v = bm.data[q + r * bm.w];
     if (v > 0) {
       const qq = ((x0 + q) % W + W) % W, rr = ((y0 + r) % H + H) % H;
-      f[qq + rr * W] = v / 100;
+      f[qq + rr * W] = v;
     }
   }
 }
 
-// 图案印章：不清理现有内容，在指定六角坐标处放置
+// 图案印章：不清理现有内容，在指定六角坐标处放置；径向图形不旋转
 function placePattern(name, cx, cy) {
-  if (name === "jelly") {
-    applyJellyParams();
-    placeJelly(cx, cy);
-  } else {
-    const f = fields[paintCh];
-    for (let r = 0; r < H; r++) {
-      for (let q = 0; q < W; q++) {
-        const dx = q - cx + (r - cy) / 2, dy = (SQ3 / 2) * (r - cy);
-        const d = Math.sqrt(dx * dx + dy * dy);
-        let v = 0;
-        if (name === "disk") v = d < R * 1.2 ? Math.random() : 0;
-        else if (name === "ring") v = (d > R * 0.8 && d < R * 1.4) ? Math.random() : 0;
-        else if (name === "stripe") v = (Math.abs(r - cy) < R * 0.6) ? Math.random() : 0;
-        if (v > 0) f[q + r * W] = v;   // 只写图案区域，保留其余内容
-      }
-    }
-  }
+  if (name === "jelly") applyJellyParams();
+  let bm = patternBitmap(name);
+  if (bm && stampAngle && (name === "jelly" || name === "stripe")) bm = rotateBitmap(bm, stampAngle);
+  if (bm) stampBitmap(bm, cx, cy);
   texDirty = true;
   needRender = true;
 }
@@ -1289,6 +1357,7 @@ $("fileImport").addEventListener("change", e => {
   e.target.value = "";
 });
 let stampPattern = "";          // 当前印章（"" = 笔刷绘制模式）
+let stampAngle = 0;             // 印章旋转角度（度，对水母/条纹生效）
 const HINT_BASE = "左键绘制 · 右键/中键拖拽平移 · 滚轮缩放 · Alt+左键擦除 · 空格暂停 · 点「? 帮助」看参数说明";
 function updatePatHint() {
   const h = $("hintLine");
@@ -1300,6 +1369,7 @@ function updatePatHint() {
   }
 }
 $("selPattern").addEventListener("change", e => { stampPattern = e.target.value; updatePatHint(); });
+bindSlider("sRot", "vRot", v => { stampAngle = v; }, v => v + "°");
 // 参数预设（sweep2.js 扫参结果：JEWEL = 稳定+紧凑+有动态）
 const PARAM_PRESETS = {
   classic: { R: 10, T: 10, m: 0.15, s: 0.016, note: "当前默认" },
