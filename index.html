@@ -113,6 +113,9 @@ body.light .plotbox span { color: #069; }
     <option value="sparse">参数·低密度斑</option>
   </select>
   <button class="btn" id="btnShot" title="导出 PNG">📷 截图</button>
+  <button class="btn" id="btnExport" title="导出当前场景（网格+参数+规则+场）为 JSON 存档，可分享/回放">💾 导出</button>
+  <button class="btn" id="btnImport" title="导入 hexlenia JSON 存档（完全还原场景）">📂 导入</button>
+  <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
   <button class="btn" id="btnHelp" title="参数与公式说明">? 帮助</button>
 </div>
 
@@ -1068,6 +1071,97 @@ window.addEventListener("keydown", e => {
 // ════════════════════════════════════════════════════════════════
 //  截图导出（3× 高清 + 信息栏）
 // ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  存档：场景导出/导入（JSON + base64 场数据）
+// ═══════════════════════════════════════════════════
+function u8ToB64(u8) {
+  let s = "";
+  for (let i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+  return btoa(s);
+}
+function b64ToU8(b64) {
+  const s = atob(b64); const u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u;
+}
+function serializeState() {
+  const cells = [];
+  for (let c = 0; c < CH; c++) {
+    const u8 = new Uint8Array(N), f = fields[c];
+    for (let i = 0; i < N; i++) {
+      let v = Math.round(f[i] * 100);
+      if (v < 0) v = 0; else if (v > 100) v = 100;
+      u8[i] = v;
+    }
+    cells.push(u8ToB64(u8));
+  }
+  return {
+    app: "hexlenia", v: 1,
+    grid: W, ch: CH, gen,
+    R, T, alpha, coreType,
+    rules: rules.map(r => ({ src: r.src, dst: r.dst, m: r.m, s: r.s, h: r.h, g: r.g })),
+    scheme, tone, lightBg,
+    cells
+  };
+}
+function deserializeState(o) {
+  if (!o || o.app !== "hexlenia" || o.v !== 1) throw new Error("不是有效的 hexlenia 存档");
+  if (![32, 64, 128, 256, 512].includes(o.grid)) throw new Error("网格值无效: " + o.grid);
+  if (!Array.isArray(o.rules) || !o.rules.length || !Array.isArray(o.cells)) throw new Error("存档缺少规则或场数据");
+  // 参数
+  R = o.R; T = o.T; alpha = o.alpha; coreType = o.coreType;
+  // 网格 / 通道 / 缓冲
+  W = H = o.grid; N = W * W;
+  CH = Math.max(1, Math.min(3, o.ch | 0));
+  initMul = null;
+  allocBuffers();
+  allocBucketBuffers();
+  // 规则
+  rules = o.rules.slice(0, 12).map(r => ({
+    src: Math.min(CH - 1, r.src | 0), dst: Math.min(CH - 1, r.dst | 0),
+    m: +r.m, s: +r.s, h: +r.h, g: GROWTHS[r.g] ? r.g : "gaus"
+  }));
+  syncSrcChannels();
+  rebuildKernels(true);
+  // 场
+  for (let c = 0; c < CH; c++) {
+    const u8 = b64ToU8(o.cells[c]);
+    const f = fields[c];
+    for (let i = 0; i < N && i < u8.length; i++) f[i] = u8[i] / 100;
+  }
+  gen = o.gen | 0;
+  // 观感
+  if (SCHEMES[o.scheme] !== undefined || o.scheme === "teal") scheme = o.scheme;
+  tone = o.tone === "smooth" ? "smooth" : "bands";
+  lightBg = !!o.lightBg;
+  $("selColor").value = scheme;
+  $("selBg").value = lightBg ? "light" : "dark";
+  $("selTone").value = tone;
+  applyColorAssets();
+  // UI 同步
+  curRule = 0;
+  $("sR").value = R; $("vR").textContent = R;
+  $("sT").value = T; $("vT").textContent = T;
+  $("sA").value = alpha; $("vA").textContent = alpha;
+  $("selCore").value = coreType;
+  $("selGrid").value = String(W);
+  syncRuleUI();
+  syncParamUI();
+  fitView();
+  updateTexScale();
+  needRender = true;
+}
+function exportFile() {
+  const data = JSON.stringify(serializeState());
+  const blob = new Blob([data], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  a.download = `hexlenia-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 function screenshot() {
   const scale = 3;
   const ow = Math.round(CW * scale), oh = Math.round((CHH + 26) * scale);
@@ -1142,6 +1236,19 @@ $("btnStep").addEventListener("click", () => { if (running) toggleRun(); step();
 $("btnRandom").addEventListener("click", () => { randomInit(); gen = 0; });
 $("btnClear").addEventListener("click", clearAll);
 $("btnShot").addEventListener("click", screenshot);
+$("btnExport").addEventListener("click", exportFile);
+$("btnImport").addEventListener("click", () => $("fileImport").click());
+$("fileImport").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try { deserializeState(JSON.parse(rd.result)); }
+    catch (err) { alert("导入失败：" + err.message); }
+  };
+  rd.readAsText(file);
+  e.target.value = "";
+});
 $("selPattern").addEventListener("change", e => { if (e.target.value) loadPattern(e.target.value); });
 // 参数预设（sweep2.js 扫参结果：JEWEL = 稳定+紧凑+有动态）
 const PARAM_PRESETS = {
