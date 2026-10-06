@@ -101,6 +101,7 @@ body.light .plotbox span { color: #069; }
   <button class="btn" id="btnClear">清空</button>
   <select id="selPattern" title="初始图案">
     <option value="">— 图案 —</option>
+    <option value="jelly" title="玩家发现的六角滑行生物：实测 0.325 格/步、2000+ 步不死、形态保持。加载时自动切到经典参数并居中放置">🪼 水母·飞行生物</option>
     <option value="disk">圆盘</option>
     <option value="ring">圆环</option>
     <option value="stripe">条纹</option>
@@ -469,7 +470,34 @@ function clearAll() {
   gen = 0; texDirty = true; needRender = true;
 }
 
+// 🪼 水母：玩家在 gen852 发现的滑行生物（22×22 裁剪，值 0-100 量化）
+// 实测：2000+ 步存活，密度 0.0030，漂移 0.325 格/步，细胞数 143-155 呼吸波动
+const CREATURE_JELLY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHGRkXFA0EAAAAAAAAAAAAAAAAAAMqCgQLFh4aDgMAAAAAAAAAAAAAAEgBAAAACiMrIxYHAAAAAAAAAAAACjEAAAAABzNCOCoZCAAAAAAAAAAASQ8AAAAAElZYRzwsGQYAAAAAAAABDREAAAAALmRYQ0Y+KRcCAAAAAAADABEAAAAASGNZQk5PMyAPAAAAAAAAAAoNAAAOPVZbXWRXLR0aBAAAAAAAAAAOCQAXLzxOYGQ9EAsVDwAAAAAAAAADDw0XIyhASjsAAAAJFwAAAAAAAAAAAx8qGR4oLQAAAAAAGgAAAAAAAAAAABwlJR4UAAAAAAAAHgAAAAAAAAAAAA8XKiYFAAAAAAAAKwAAAAAAAAAAAAAKFxcRCAAAAAAZHwAAAAAAAAAAAAAAAAAHDxAIBxBQAAAAAAAAAAAAAAAAAAAAAAcNEEcAAAAAAAAAAAAAAAAAAAAAAAAACAIAAAAAAAAAAAAAAAAAAAAAAAAADQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+
+function loadCreatureJelly() {
+  // 生物对参数极敏感：强制回到它的“家园参数”（经典预设）
+  applyPreset("solo");
+  R = 10; T = 10;
+  rules[0].m = 0.15; rules[0].s = 0.016; rules[0].g = "gaus";
+  rebuildKernels(true);
+  $("sR").value = R; $("vR").textContent = R;
+  $("sT").value = T; $("vT").textContent = T;
+  syncParamUI();
+  // 清场（applyPreset 会随机填场，必须清掉）
+  for (let c = 0; c < CH; c++) fields[c].fill(0);
+  // 居中放置
+  const u8 = b64ToU8(CREATURE_JELLY), w = 22, h = 22;
+  const x0 = (W - w) >> 1, y0 = (H - h) >> 1;
+  const f = fields[0];
+  for (let r = 0; r < h; r++) for (let q = 0; q < w; q++) {
+    const v = u8[r * w + q];
+    if (v > 0) f[(x0 + q) + (y0 + r) * W] = v / 100;
+  }
+  gen = 0; texDirty = true; needRender = true;
+}
+
 function loadPattern(name) {
+  if (name === "jelly") { loadCreatureJelly(); return; }
   const cx = W >> 1, cy = H >> 1;
   for (let c = 0; c < CH; c++) fields[c].fill(0);
   const f = fields[paintCh];
