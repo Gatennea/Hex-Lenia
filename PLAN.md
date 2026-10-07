@@ -182,3 +182,13 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - Orbium变体：600步灭绝（200步筛选高估！存活数57是上界）
 
 推论：宽σ是移植钥匙（与此前种子实验一致）；200步筛选需长跑复核；多环核近似(poly)也大多存活
+
+## 原版生物库画廊（本轮）
+
+- lifecreatures.js（81KB，57 种移植幸存者，build_gallery.js 按 name+code+R+μ+σ 键提取 57/57 匹配）
+- 游戏内集成：图案下拉新增「原版生物库(57种)」optgroup → 选中即印章模式，点击画布放置；
+  自动设置物种参数（R/μ/σ/核/增长/T，单物种时），保留已有内容可连续放置
+- 原版 ToCellArray zip 解码器 + 规则串解析 移植进游戏（lifeToCells/lifeRuleParse）
+- 验证：node 集成测试（57条注入+放置+存活）✓ 回归 ✓ 浏览器（下拉62项/参数联动/提示）✓
+
+注：57为200步筛选上界（如 Orbium 变体600步会死）；长跑复核列为待办

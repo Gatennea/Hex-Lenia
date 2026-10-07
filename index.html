@@ -211,6 +211,7 @@ body.light .plotbox span { color: #069; }
   视觉上显示为矩形只是换了“裁断位置”；图案穿过边界会从另一侧回来。真正无限的网格无法使用 FFT 卷积（需另套架构），大空间（256²/512²）已足够感觉不到边界。
 </div>
 
+<script src="lifecreatures.js"></script>
 <script>
 "use strict";
 // ════════════════════════════════════════════════════════════════
@@ -475,6 +476,66 @@ function clearAll() {
 // 实测：2000+ 步存活，密度 0.0030，漂移 0.325 格/步，细胞数 143-155 呼吸波动
 const CREATURE_JELLY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHGRkXFA0EAAAAAAAAAAAAAAAAAAMqCgQLFh4aDgMAAAAAAAAAAAAAAEgBAAAACiMrIxYHAAAAAAAAAAAACjEAAAAABzNCOCoZCAAAAAAAAAAASQ8AAAAAElZYRzwsGQYAAAAAAAABDREAAAAALmRYQ0Y+KRcCAAAAAAADABEAAAAASGNZQk5PMyAPAAAAAAAAAAoNAAAOPVZbXWRXLR0aBAAAAAAAAAAOCQAXLzxOYGQ9EAsVDwAAAAAAAAADDw0XIyhASjsAAAAJFwAAAAAAAAAAAx8qGR4oLQAAAAAAGgAAAAAAAAAAABwlJR4UAAAAAAAAHgAAAAAAAAAAAA8XKiYFAAAAAAAAKwAAAAAAAAAAAAAKFxcRCAAAAAAZHwAAAAAAAAAAAAAAAAAHDxAIBxBQAAAAAAAAAAAAAAAAAAAAAAcNEEcAAAAAAAAAAAAAAAAAAAAAAAAACAIAAAAAAAAAAAAAAAAAAAAAAAAADQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
 
+const LIFE_DATA = (typeof LENIA_LIFEFORMS !== "undefined") ? LENIA_LIFEFORMS : [];
+
+// ── 原版生物库：规则串解析 + zip 种子解码（原版 ToCellArray 移植）──
+function lifeRuleParse(rs) {
+  const o = { R: 10, T: 10, m: 0.15, s: 0.016, core: "exp", grow: "gaus" };
+  const mR = rs.match(/R=(\d+)/); if (mR) o.R = +mR[1];
+  const mk = rs.match(/k=([a-z0-9]+)/);
+  if (mk) { const c = mk[1]; o.core = c === "quad4" ? "poly" : (c === "stpz1/4" || c === "stpz" || c === "life") ? "rect" : "exp"; }
+  const md = rs.match(/d=([a-z0-9]+)\((-?[\d.eE+-]+),(-?[\d.eE+-]+)\)/);
+  if (md) { o.grow = md[1] === "quad4" ? "poly" : md[1] === "stpz" ? "rect" : md[1] === "trap" ? "trap" : "gaus"; o.m = +md[2]; o.s = +md[3]; }
+  const mt = rs.match(/\*([\d.]+)\s*$/); if (mt && +mt[1] > 0) o.T = Math.round(1 / +mt[1]);
+  return o;
+}
+function lifeToCells(st) {
+  const isZip = st.startsWith("(zip)");
+  if (isZip) st = st.substring(5);
+  const sep = isZip ? "" : ",";
+  const fromZip = c => c === "0" ? 0 : c === "1" ? 100 : c.charCodeAt(0) - 191;
+  const fromRep = t => t === "" ? 1 : (t.charCodeAt(0) >= 192 ? (t.length === 1 ? fromZip(t) : fromZip(t[0]) * 100 + fromZip(t[1])) : parseInt(t, 10));
+  let rows = st.split("/"), w = 0;
+  for (let i = 0; i < rows.length; i++) {
+    let row = rows[i].trim();
+    if (isZip) {
+      const segs = row.split("-"); row = "";
+      for (const seg of segs) { const p = seg.split("."); row += p.length === 1 ? seg : "0".repeat(fromRep(p[0])) + (p[1] || ""); }
+    }
+    rows[i] = row = row.split(sep);
+    w = Math.max(w, row.length);
+    if (isZip) for (let j = 0; j < row.length; j++) { const v = fromZip(row[j]) / 100; row[j] = v < 0 ? 0 : v; }
+    else for (let j = 0; j < row.length; j++) row[j] = parseFloat(row[j]) || 0;
+  }
+  return { arr: rows, w, h: rows.length };
+}
+function placeLife(idx, cx, cy) {
+  const e = LIFE_DATA[idx];
+  if (!e) return;
+  const ci = e.rec.indexOf(";cells=");
+  const p = lifeRuleParse(e.rec.slice(0, ci));
+  if (CH === 1) {   // 物种参数即身份（多物种时不动规则）
+    R = p.R; T = p.T;
+    rules[0].m = p.m; rules[0].s = p.s; rules[0].g = p.grow;
+    coreType = p.core;
+    rebuildKernels(true);
+    $("sR").value = R; $("vR").textContent = R;
+    $("sT").value = T; $("vT").textContent = T;
+    $("selCore").value = coreType;
+    syncParamUI();
+  }
+  const seed = lifeToCells(e.rec.slice(ci + 7));
+  const f = fields[paintCh];
+  const x0 = cx - (seed.w >> 1), y0 = cy - (seed.h >> 1);
+  for (let r = 0; r < seed.h; r++) for (let q = 0; q < seed.w; q++) {
+    const v = seed.arr[r * seed.w + q];
+    if (v > 0 && v <= 1) {
+      const qq = ((x0 + q) % W + W) % W, rr = ((y0 + r) % H + H) % H;
+      f[qq + rr * W] = v;
+    }
+  }
+}
+
 function applyJellyParams() {
   // 生物对参数极敏感：单物种时锁定它的“家园参数”（经典预设）；多物种不动规则
   if (CH !== 1) return;
@@ -580,6 +641,12 @@ function stampBitmap(bm, cx, cy) {
 
 // 图案印章：不清理现有内容，在指定六角坐标处放置；径向图形不旋转
 function placePattern(name, cx, cy) {
+  if (name.startsWith("life:")) {
+    placeLife(+name.slice(5), cx, cy);
+    texDirty = true;
+    needRender = true;
+    return;
+  }
   if (name === "jelly") applyJellyParams();
   let bm = patternBitmap(name);
   if (bm && stampAngle && (name === "jelly" || name === "stripe")) bm = rotateBitmap(bm, stampAngle);
@@ -1363,7 +1430,7 @@ function updatePatHint() {
   const h = $("hintLine");
   if (stampPattern) {
     const nm = $("selPattern").selectedOptions[0].textContent;
-    h.innerHTML = `📌 <b>印章模式</b>：点击画布放置「${nm}」（保留已有内容，可连续放置，放水母会切回经典参数）· 选「— 图案 —」恢复笔刷`;
+    h.innerHTML = `📌 <b>印章模式</b>：点击画布放置「${nm}」（保留已有内容，可连续放置；生物类会自动设置其物种参数）· 选「— 图案 —」恢复笔刷`;
   } else {
     h.innerHTML = HINT_BASE;
   }
@@ -1531,6 +1598,18 @@ syncRuleUI();
 syncParamUI();
 randomInit();
 drawPlots();
+// 原版生物库下拉（lifecreatures.js 提供）
+if (LIFE_DATA.length) {
+  const og = document.createElement("optgroup");
+  og.label = "原版生物库(" + LIFE_DATA.length + "种)";
+  LIFE_DATA.forEach((e, i) => {
+    const o = document.createElement("option");
+    o.value = "life:" + i;
+    o.textContent = (i + 1) + ". " + e.name + " [" + e.code + "]";
+    og.appendChild(o);
+  });
+  $("selPattern").appendChild(og);
+}
 needRender = true;
 requestAnimationFrame(loop);
 </script>
