@@ -164,3 +164,21 @@ zip 解码器，20×20 生物解码成功），并写方格对照引擎（同一
 1. LifeForms 规则移植扫描：原版 330 份规则（含宽 σ 如 0.0358）× 原版种子 → 六角存活率
 2. 大规模随机海选：随机噪声场 + 孤立化处理 × 参数网格，批量后台跑
 3. walk 加 R 维度（需从场/噪声出发，水母在 R 变化时无法架桥）
+
+## 原版生物移植扫描（本轮，转折点）
+
+工具：transplant.js（330份规则+种子 → 六角，200步筛选）+ verify_survivors.js（明星物种600步深测）
+
+结果：**57/330 存活（17.3%）**——批量分布：0-39:13 / 40-79:11 / 80-119:21 / 120-159:6 / 160-199:3 / 200-239:1 / 240-284:0 / 285-329:2
+规律：文件前段（宽σ 0.03-0.11 的分类学族）存活率极高；后段（窄σ/方格特异性 bug/glider）基本全灭
+
+移植成功物种（部分）：Orbium ignis O2(-)、Scutium solidus/valvatus、Discutium~Heptascutium（Cutium族）、
+Paraptera P4族、Pentapteryx~Decapteryx（Pteryx族）、Helicium/Helicium族、Gyropteron、Pyroscutium、
+Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decadentium、Bug(bigger) 等
+
+深测（600步）：
+- Scutium solidus：d=0.0095 持续飞行 0.29格/步 形态差0.019 → **第二飞行物种**（ASCII优美紧凑体）
+- Bug(bigger) R26：d=0.0348 **1.07格/步** 超快速 形态差0.112（双体结构）
+- Orbium变体：600步灭绝（200步筛选高估！存活数57是上界）
+
+推论：宽σ是移植钥匙（与此前种子实验一致）；200步筛选需长跑复核；多环核近似(poly)也大多存活
