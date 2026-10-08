@@ -1,7 +1,7 @@
 // 水母各向同性测试：六角晶格 C6 对称性 → 按 60° 旋转种子，
 // 理论预言：动力学与旋转交换，六方向的速度/行为应基本一致，航向 = 基准 + 60°·k
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
+const html = require("./src").html();
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function makeEl(){return{style:{},innerHTML:'',textContent:'',value:'0',classList:{add(){},remove(){},toggle(){}},addEventListener(){},appendChild(){},getContext(){return new Proxy({},{get(t,p){if(p==='canvas')return{width:0,height:0};if(p==='createImageData')return(w,h)=>({data:new Uint8ClampedArray(w*h*4),width:w,height:h});return t[p]!==undefined?t[p]:()=>{}},set(){return true}})},getBoundingClientRect(){return{left:0,top:0}},width:0,height:0}}
 const els={};

@@ -84,29 +84,37 @@ A'[c] = clip(A[c] + dt · D[c] / Σh_c, 0, 1)
 
 ```
 hexlifegame/
-├── index.html            # 主程序（HTML+CSS+JS 单文件）
-├── lifecreatures.js      # 原版生物库数据（57 种移植幸存者）
-├── README.md             # 本文档
-├── DESIGN.md             # 重做设计文档（原版源码分析 + 方案）
-├── PLAN.md               # 迭代计划与实验流水
-├── COMPARISON.md         # 方格核 vs 六角核 对照实验
-├── FINDINGS.md           # 迄今发现总结（严谨+通俗双层）
-├── docs/                 # 后续任务说明
-├── tools/                # 实验与测试脚本（从根目录运行: node tools/xxx.js）
-│   ├── test_node.js      # Node 回归测试（FFT 自检 + 启动/步进/渲染）
-│   ├── sweep2.js         # 参数扫描工具（画稳定带）
-│   ├── hunt_creatures.js # 生物猎手（分类 FLYER/OSC/STABLE）
-│   ├── transplant.js     # 原版 330 标本移植扫描
-│   ├── compare_grids.js  # 方格/六角双核对照实验
-│   └── …                 # 其余实验脚本（共 14 个）
-├── exp_result.txt        # 实验数据（Orbium 方格对照）
-├── compare_results.txt   # 实验数据（57 种双网格全量，原始输出）
+├── index.html            # 薄壳：DOM + 加载顺序（P2 拆分后 ~200 行）
+├── css/
+│   └── style.css         # 全部样式（含 .light 主题）
+├── js/                   # 单向依赖：ui → render → core
+│   ├── constants.js      # 集中状态与常量（含共享渲染状态）
+│   ├── core.js           # 纯引擎：FFT/核/步进/预设/规则解析（加载期零 DOM）
+│   ├── render.js         # 纹理/调色板/绘图/曲线图
+│   └── ui.js             # 控件/事件/印章/存档/画廊/诊断/启动
+├── data/
+│   ├── lifecreatures.js  # 原版生物库（57 种）
+│   ├── longrun_2000.txt  # 2000 步长跑定稿 35/57（含统计头）
+│   └── longrun_p*.txt    # 长跑分批原始输出
+├── docs/                 # 文档三分：todo/ 待办、records/ 记录、guides/ 说明
+├── tools/                # 18 个脚本（详见 tools/README.md）
+│   ├── lint.js           # 静态四查（语法/禁**/断链/死代码）
+│   ├── test_node.js      # 回归：FFT 自检 + 启动 + 50 步 + 渲染
+│   ├── test_unit.js      # 单测 16 项（core 零 DOM 独立加载）
+│   ├── src.js            # 统一源码入口（兼容旧工具的 script 提取）
+│   ├── compare_grids.js  # 方格/六角双核对照（支持 [步数][hex]）
+│   └── …                 # 其余实验脚本
+├── .github/workflows/ci.yml  # CI：lint + 回归 + 单测
+├── package.json  .npmrc  .gitignore  LICENSE  README.md  README_en.md
+├── exp_result.txt / compare_results.txt   # 实验数据（P3 计划迁 data/）
 └── lenia-reference/      # 原版参考源码（MIT；本地保留，不入库）
 ```
 
 ## 验证记录
 
 - `node tools/test_node.js` — FFT vs 直接卷积 maxErr ≈ 7.8e-16，启动/50步/渲染通过
+- `node tools/test_unit.js` — 16 项单测全过（增长/核/ΣK=1/FFT往返/解析/种子/core-only 存活）
+- `npm test` = lint + 回归 + 单测 三连（CI 同套）
 - 三预设存活回归：`solo 0.211 ✓ | predator 0.215/0.341 ✓ | compete 三物种 ✓`
 - 渲染分桶逻辑：`bucketCnt=512、无越界键、桶总和=16384 ✓`
 - 浏览器截图：单物种 Lenia 蠕虫/片状结构正常涌现，UI/统计正常

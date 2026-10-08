@@ -16,3 +16,5 @@ jobs:
         run: node tools/lint.js
       - name: 回归测试（FFT自检/启动/步进/渲染）
         run: node tools/test_node.js
+      - name: 单元测试（core 零 DOM，16 项）
+        run: node tools/test_unit.js

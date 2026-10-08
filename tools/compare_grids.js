@@ -7,7 +7,7 @@ const fs = require("fs");
 
 // ---- LifeForms 数据 ----
 const wLoader = {};
-new Function("window", fs.readFileSync(__dirname + "/../lifecreatures.js", "utf8"))(wLoader);
+new Function("window", fs.readFileSync(__dirname + "/../data/lifecreatures.js", "utf8"))(wLoader);
 const LIFE = wLoader.LENIA_LIFEFORMS;
 
 // ---- DOM 桩（复用 test_node 模式）----
@@ -42,7 +42,7 @@ const window = { devicePixelRatio: 1, addEventListener() {}, requestAnimationFra
 function requestAnimationFrame() {}
 const performance = { now: () => Date.now() };
 
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
+const html = require("./src").html();
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const RET = `
 return { get W(){return W}, get H(){return H}, get N(){return N}, get R(){return R}, get T(){return T},

@@ -1,0 +1,83 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0b0b16;
+  color: #dfe3ea;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; padding: 10px; user-select: none;
+}
+h1 { font-size: 1.05rem; color: #37e6d0; letter-spacing: 3px; margin-bottom: 8px; font-weight: 600; }
+#stage {
+  position: relative; border: 1px solid #26263c; border-radius: 6px;
+  overflow: hidden; background: #050508; cursor: crosshair;
+}
+#stage.panning { cursor: grab; }
+#stage.panning:active { cursor: grabbing; }
+canvas { display: block; }
+
+.bar {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  justify-content: center; max-width: 980px; margin-top: 8px;
+}
+.btn {
+  padding: 5px 12px; border: 1px solid #34344e; border-radius: 5px;
+  background: #171728; color: #ccd2de; cursor: pointer;
+  font-size: 0.8rem; transition: all .12s; font-family: inherit;
+}
+.btn:hover { background: #22223a; border-color: #4a4a70; }
+.btn.active { background: #0e6a5e; border-color: #16b8a2; color: #eafffb; }
+.btn.run { background: #0e6a5e; border-color: #16b8a2; color: #eafffb; }
+select {
+  padding: 5px 8px; border: 1px solid #34344e; border-radius: 5px;
+  background: #171728; color: #ccd2de; font-size: 0.8rem; font-family: inherit;
+}
+.param { display: flex; align-items: center; gap: 5px; background: #14142a;
+  border: 1px solid #2a2a44; border-radius: 5px; padding: 3px 8px; }
+.param label { font-size: 0.74rem; color: #8b93ab; min-width: 30px; }
+.param input[type=range] { width: 86px; accent-color: #16b8a2; }
+.param .val { font-size: 0.74rem; color: #37e6d0; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+#stats {
+  font-size: 0.76rem; color: #7d86a0; margin-top: 7px;
+  font-variant-numeric: tabular-nums; text-align: center; line-height: 1.6;
+}
+#stats b { color: #37e6d0; font-weight: 600; }
+.hint { font-size: 0.72rem; color: #565e78; margin-top: 5px; }
+#help {
+  display: none; max-width: 940px; margin-top: 8px;
+  background: #12122a; border: 1px solid #2a2a44; border-radius: 8px;
+  padding: 12px 18px 14px; font-size: 0.77rem; line-height: 1.75; color: #aab2c8; text-align: left;
+}
+#help h3 { color: #37e6d0; font-size: 0.82rem; margin: 10px 0 3px; font-weight: 600; }
+#help .eq { color: #e8d47a; background: #0a0a18; padding: 5px 9px; border-radius: 4px; display: block; margin: 4px 0; }
+#help b { color: #ccd6ea; }
+.bar#plotBar { gap: 10px; }
+.plotbox {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: #14142a; border: 1px solid #2a2a44; border-radius: 6px; padding: 5px 9px 7px;
+}
+.plotbox span { font-size: 0.68rem; color: #8b93ab; letter-spacing: 0.3px; }
+.plotbox canvas { border-radius: 3px; display: block; }
+/* ── 白底原版风主题 ── */
+body.light { background: #f4f6fa; color: #243447; }
+body.light h1 { color: #09f; }
+body.light .btn { background: #e8e8ec; border-color: #c8c8d2; color: #333; }
+body.light .btn:hover { background: #ddd; border-color: #aaa; }
+body.light .btn.active, body.light .btn.run { background: #afd; border-color: #7c9; color: #053; }
+body.light select { background: #eee; border-color: #c8c8d2; color: #223; }
+body.light .param { background: #eef1f6; border-color: #d5dae4; }
+body.light .param label { color: #567; }
+body.light .param .val { color: #069; }
+body.light #stats { color: #567; }
+body.light #stats b { color: #09f; }
+body.light .hint { color: #789; }
+body.light .sep { color: #aac; }
+body.light #help { background: #fff; border-color: #ccd; color: #345; }
+body.light #help h3 { color: #09f; }
+body.light #help .eq { background: #f2f5fa; color: #069; }
+body.light #help b { color: #036; }
+body.light #stage { background: #fff; border-color: #ccd; }
+body.light .plotbox { background: #fff; border-color: #ccd; }
+body.light .plotbox span { color: #069; }
+.sep { color: #3a3f58; margin: 0 2px; }
+#ruleChips .chip { font-size: 0.72rem; padding: 3px 8px; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }

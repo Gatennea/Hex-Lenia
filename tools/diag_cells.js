@@ -1,7 +1,7 @@
 // 诊断: lifecreatures.js 的 rec 与原版 LifeForms.js 是否一致 / 解码是否出细胞
 const fs = require("fs");
 global.window = {};
-eval(fs.readFileSync("lifecreatures.js", "utf8"));
+eval(fs.readFileSync(__dirname + "/../data/lifecreatures.js", "utf8"));
 const LIFE = window.LENIA_LIFEFORMS;
 
 // 原版解码(与 transplant.js 相同)

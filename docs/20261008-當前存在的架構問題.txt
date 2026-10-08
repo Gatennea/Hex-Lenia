@@ -2,7 +2,13 @@
 
 当前问题：1 2 3 4 5 6 7
 
-已解决：2、3、5a
+已解决：1、2、3、4、5a、6
+
+- 1（已解决，P2-⑤）：拆分为 css/style.css + js/{constants,core,render,ui}.js + 薄壳 index.html
+  （9.7KB），经典 script 顺序加载、零构建、file:// 兼容；迁移脚本一次性断言执行
+- 4（已解决，Tier1）：core.js 加载期零 DOM，公开 API 由 tools/src.js coreOnly() 暴露；
+  tools/test_unit.js 16 项单测（增长/核/ΣK=1/FFT往返/规则解析/种子解码/core-only 引擎存活）
+  —— Tier2（createSim 实例化）经拍板暂缓
 
 - 2（已解决）：删除 tmpRe 占位、placeJelly 死函数、工具脚本未用变量；
   死代码扫描固化为 tools/lint.js 的 W 级检查（当前 0 错 0 警）；

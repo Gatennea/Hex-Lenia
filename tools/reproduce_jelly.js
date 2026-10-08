@@ -1,6 +1,6 @@
 // 单趟版：一次 1000 步内完成 密度/形态/漂移 测量；矩阵 = 直线笔刷 × 参数预设
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
+const html = require("./src").html();
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function makeEl(){return{style:{},innerHTML:'',textContent:'',value:'0',classList:{add(){},remove(){},toggle(){}},addEventListener(){},appendChild(){},getContext(){return new Proxy({},{get(t,p){if(p==='canvas')return{width:0,height:0};if(p==='createImageData')return(w,h)=>({data:new Uint8ClampedArray(w*h*4),width:w,height:h});return t[p]!==undefined?t[p]:()=>{}},set(){return true}})},getBoundingClientRect(){return{left:0,top:0}},width:0,height:0}}
 const els={};

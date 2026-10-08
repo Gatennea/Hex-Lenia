@@ -1,7 +1,7 @@
 // 主动转向实验：水母按任意角度旋转后放置，观察动力学响应
 // 问题：非 60° 角 → 生物会死？会转向吗？航向是跟随输入角还是吸附到晶格轴？
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
+const html = require("./src").html();
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function makeEl(){return{style:{},innerHTML:'',textContent:'',value:'0',classList:{add(){},remove(){},toggle(){}},addEventListener(){},appendChild(){},getContext(){return new Proxy({},{get(t,p){if(p==='canvas')return{width:0,height:0};if(p==='createImageData')return(w,h)=>({data:new Uint8ClampedArray(w*h*4),width:w,height:h});return t[p]!==undefined?t[p]:()=>{}},set(){return true}})},getBoundingClientRect(){return{left:0,top:0}},width:0,height:0}}
 const els={};

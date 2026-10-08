@@ -228,3 +228,14 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 水母5批全活；工具: compare_grids新增[步数][hex]参数 + tools/agg_longrun.js 汇总器
 - 环境教训固化: 后台启动唯一可靠=PowerShell Start-Process（nohup链截断/timeout连坐/setsid缺失）
 - FINDINGS §6.4/§10 已回填，问题文档已解决:2、3、5a
+
+## P2 结构解耦（⑤⑥，本轮）✅
+
+- 拆分（split_p2.js 断言式一次性迁移，归档于 git）：index.html 1683行→薄壳9.7KB +
+  css/style.css(4KB) + js/constants(2.4)/core(13.6)/render(19.5)/ui(28.8)KB + data/lifecreatures.js
+- 依赖铁律落地：core 加载期零 DOM；ui→render→core 单向；共享状态(needRender/texDirty)收进 constants
+- tools/src.js 统一源码入口：13个旧工具 html.match(<script>) 用法零改动兼容（sed 单行替换）
+- test_unit.js 16项单测（core-only 加载：增长/exp核实为原版bump族峰值r=0.5/ΣK=1/FFT往返/解析/core存活）
+- 四关验收全绿：lint断链语法 → 回归(与拆分前数值逐位一致) → 单测16/16 → 浏览器selftest(增量99.1 PASS)
+- npm test 三连 + CI 增加单测步骤；README 目录更新为目标结构
+- 问题文档已解决：1、2、3、4(Tier1)、5a、6（剩 5其余、7=P3/P4）

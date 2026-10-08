@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "check": "node tools/lint.js",
-    "test": "node tools/lint.js && node tools/test_node.js",
+    "test": "node tools/lint.js && node tools/test_node.js && node tools/test_unit.js",
     "serve": "python3 -m http.server 8081 --bind 127.0.0.1"
   }
 }

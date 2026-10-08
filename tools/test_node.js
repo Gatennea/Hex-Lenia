@@ -1,6 +1,6 @@
 // Node 桩环境：验证 index.html 启动脚本是否有死循环/异常
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
+const html = require("./src").html();
 const m = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!m) { console.log("NO SCRIPT"); process.exit(1); }
 const src = m[1];
