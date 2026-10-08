@@ -203,3 +203,13 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 诊断体系：dbg 环缓存(window.__dbgLog)+toast 即时反馈+?selftest=1 全链路自检
 - 验证：回归 PASS；冷启动 jelly@128² 0.0031→0.0031、Scutium@128² 0.0084→0.0094、
   Bug 自动升256² 0.0096→0.0964 全部存活
+
+## 方格核 vs 六角核 对照实验（COMPARISON.md，compare_grids.js/compare_results.txt）
+
+- 单变量：同引擎仅换核几何。300步。指标:存活/act/速度/直线度/晶格偏差/形变
+- 存活：原版57种 六角40(70.2%) vs 方格54(94.7%)；水母 hex活/sq死 → 双向本地优势
+- **57名单按200步筛选的上界被修正：17种死于hex 200-300步间（长跑复核必要性坐实）**
+- 双死3种:2PG1/2P8/2P9；最强健:Bug(bigger)双网格混沌高速
+- 行为：速度双向分化(2D10六角13×/P5f方格5×)；方格=滑翔道(saliens族直线化+保形,偏≤16°)
+  六角=自由航向(偏至30°)；H螺旋族反转(hex起飞→死 vs sq原地卷曲活)；水母=hex-native
+- 水母8批次重复逐位一致(可复现✓)
