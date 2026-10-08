@@ -1609,6 +1609,9 @@ if (LIFE_DATA.length) {
     og.appendChild(o);
   });
   $("selPattern").appendChild(og);
+} else {
+  // 诊断：数据未加载（常见于缓存了旧404 / file:// 协议限制）
+  $("hintLine").innerHTML = "⚠ <b>生物库未加载</b>：lifecreatures.js 未取到 —— 请 Ctrl+F5 强刷新，或用本地服务器（如 python3 -m http.server）打开";
 }
 needRender = true;
 requestAnimationFrame(loop);
