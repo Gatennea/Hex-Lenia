@@ -59,7 +59,7 @@ const KEYS = [
 ["Decadentium rotans trioculi","2D10",18,0.28,0.035],
 ["Bug(bigger)","~(bbug)",26,0.31,0.05],
 ];
-const lf = fs.readFileSync(__dirname + "/lenia-reference/Lenia-LifeForms.js", "utf8");
+const lf = fs.readFileSync(__dirname + "/../lenia-reference/Lenia-LifeForms.js", "utf8");
 const recRe = /\["([^"]{1,20})",\s*"([^"]{2,60})",\s*"([^"]{0,40})",\s*"(R=[^"]+)"/g;
 const recs = []; let mm;
 while ((mm = recRe.exec(lf)) !== null) recs.push({ name: mm[2], code: mm[1], rec: mm[4] });
@@ -89,6 +89,6 @@ console.log(`匹配 ${out.length}/${KEYS.length}`);
 if (missing.length) { console.log("缺失:"); missing.forEach(x => console.log("  " + x)); }
 const body = "window.LENIA_LIFEFORMS = [\n" + out.map(o =>
   `  {name:${JSON.stringify(o.name)}, code:${JSON.stringify(o.code)}, rec:${JSON.stringify(o.rec)}}`).join(",\n") + "\n];\n";
-fs.writeFileSync(__dirname + "/lifecreatures.js",
+fs.writeFileSync(__dirname + "/../lifecreatures.js",
   `// 生成文件：原版 Lenia 生物库中移植幸存者（${out.length} 种）\n// 由 build_gallery.js 从 lenia-reference/Lenia-LifeForms.js 提取（键: name+code+R+μ+σ）\n` + body);
 console.log(`lifecreatures.js 写入 ${out.length} 条，${(body.length / 1024).toFixed(0)}KB`);

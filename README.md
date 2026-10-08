@@ -85,23 +85,28 @@ A'[c] = clip(A[c] + dt · D[c] / Σh_c, 0, 1)
 ```
 hexlifegame/
 ├── index.html            # 主程序（HTML+CSS+JS 单文件）
+├── lifecreatures.js      # 原版生物库数据（57 种移植幸存者）
 ├── README.md             # 本文档
 ├── DESIGN.md             # 重做设计文档（原版源码分析 + 方案）
-├── PLAN.md               # 迭代计划
-├── test_node.js          # Node 回归测试（FFT 自检 + 启动/步进/渲染）
-├── sweep2.js             # 参数扫描工具（画稳定带）
-├── hunt_creatures.js     # 生物猎手（自动分类 FLYER/OSC/STABLE）
-├── reproduce_jelly.js    # 水母复现尝试记录
-└── lenia-reference/      # 原版参考源码（MIT，github.com/Chakazul/Lenia）
-    ├── Lenia.html        # 原版 JS 实现（156KB）
-    ├── LeniaNDKC.py      # 多核多通道 Python 版 v3.5
-    ├── LeniaNDK.py       # 多核 Python 版 v3.4
-    └── README.md
+├── PLAN.md               # 迭代计划与实验流水
+├── COMPARISON.md         # 方格核 vs 六角核 对照实验
+├── FINDINGS.md           # 迄今发现总结（严谨+通俗双层）
+├── docs/                 # 后续任务说明
+├── tools/                # 实验与测试脚本（从根目录运行: node tools/xxx.js）
+│   ├── test_node.js      # Node 回归测试（FFT 自检 + 启动/步进/渲染）
+│   ├── sweep2.js         # 参数扫描工具（画稳定带）
+│   ├── hunt_creatures.js # 生物猎手（分类 FLYER/OSC/STABLE）
+│   ├── transplant.js     # 原版 330 标本移植扫描
+│   ├── compare_grids.js  # 方格/六角双核对照实验
+│   └── …                 # 其余实验脚本（共 14 个）
+├── exp_result.txt        # 实验数据（Orbium 方格对照）
+├── compare_results.txt   # 实验数据（57 种双网格全量，原始输出）
+└── lenia-reference/      # 原版参考源码（MIT；本地保留，不入库）
 ```
 
 ## 验证记录
 
-- `node test_node.js` — FFT vs 直接卷积 maxErr ≈ 7.8e-16，启动/50步/渲染通过
+- `node tools/test_node.js` — FFT vs 直接卷积 maxErr ≈ 7.8e-16，启动/50步/渲染通过
 - 三预设存活回归：`solo 0.211 ✓ | predator 0.215/0.341 ✓ | compete 三物种 ✓`
 - 渲染分桶逻辑：`bucketCnt=512、无越界键、桶总和=16384 ✓`
 - 浏览器截图：单物种 Lenia 蠕虫/片状结构正常涌现，UI/统计正常

@@ -8,7 +8,7 @@
 const fs = require("fs");
 
 // ---------- 1. 提取 O2 记录 ----------
-const lf = fs.readFileSync(__dirname + "/lenia-reference/Lenia-LifeForms.js", "utf8");
+const lf = fs.readFileSync(__dirname + "/../lenia-reference/Lenia-LifeForms.js", "utf8");
 const i0 = lf.indexOf('["O2(a)"');
 if (i0 < 0) { console.log("O2 not found"); process.exit(1); }
 const rs = lf.indexOf('"R=', i0);
@@ -72,7 +72,7 @@ console.log("种子 ASCII:");
 console.log(ascii(seed.arr, seed.w, seed.h));
 
 // ---------- 3. 加载引擎 ----------
-const html = fs.readFileSync(__dirname + "/index.html", "utf8");
+const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function makeEl() { return { style: {}, innerHTML: "", textContent: "", value: "0", classList: { add() {}, remove() {}, toggle() {} }, addEventListener() {}, appendChild() {}, getContext() { return new Proxy({}, { get(t, p) { if (p === "canvas") return { width: 0, height: 0 }; if (p === "createImageData") return (w, h) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h }); return t[p] !== undefined ? t[p] : () => {}; }, set() { return true; } }); }, getBoundingClientRect() { return { left: 0, top: 0 }; }, width: 0, height: 0 }; }
 const els = {};

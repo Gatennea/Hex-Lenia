@@ -1,0 +1,40 @@
+本文档具有实效性，应当在改善之后标记相应的问题，并且在全部优化或放弃之后注明“已过时”。
+
+当前问题：1 2 3 4 5 6 7
+
+已解决：/
+
+### 1. 单文件巨型化，可维护性差
+`index.html` 共 1683 行 ，HTML + CSS + JS 混在一起。函数声明从第 228 行排到 1639 行，全局可变状态多达 30+ 个（W, H, CH, fields, rules, R, T, ...）。
+
+- 问题 ：任何修改都要在一个大文件里翻找；没有模块化，无法做单元测试（test_node.js 只能做"启动+50步"冒烟测试，无法测单个函数）。
+- 建议 ：至少把 JS 拆成`core.js` （卷积/FFT/步进）、`render.js` 、`ui.js` 三个文件，用`<script>` 顺序加载即可，不需要构建工具。
+### 2. 存在明显的死代码/占位代码
+index.html:705：
+
+js
+
+1
+
+`const tmpRe = { get() { return this._r; }, set v(x) { this._r = x; } }; // placeholder unused`
+
+这个对象既没有`_r` 初始化，getter 里`this._r` 永远是 undefined，且注释自承"unused"。应直接删除。项目里类似的实验残留可能还有（`cg0.txt` –`cg8.txt` 、`srv.log` 、`compare_results.txt` 、`exp_result.txt` 等散落在根目录）。
+
+### 3. 缺乏工程化基础设施
+- 无`package.json` 、无构建系统、无 ESLint/Prettier、无 CI
+- `.gitignore` 只有`Thumbs.db` 和`.DS_Store` ——`srv.log` 、`cg*.txt` 、`compare_results.txt` 等实验产物都在版本库里污染根目录
+- 测试是手动跑`node test_node.js` ，没有自动化回归
+### 4. 全局状态耦合严重，难以隔离测试
+`step()` 依赖`fields` ,`rules` ,`chFft` ,`D` ,`Dn` ,`bufRe` ,`bufIm` ,`srcChannels` ,`T` 等一堆全局变量。`selfTest()` 虽然做了 FFT 正确性验证，但 无法独立测试增长函数、核构建、渲染分桶等单元 ——它们都嵌在全局状态里。
+
+### 5. 文档与代码有未闭环的待办
+FINDINGS.md §10 和 PLAN.md 明确列出的未完成项：
+
+- 57 种生物的 2000 步长跑复核 未做（当前 300 步已把幸存数从 57 修正到 40，真实数字可能更低）
+- 方格端是"近似原版核型"（`stpz1/4` 因正则截断落回`exp` ），未用原版 Lenia.html 复跑校准
+- P2/P3 功能（URL 参数分享、GIF 导出、时间回溯、多环核、per-rule R）未实现
+### 6. 实验脚本无统一入口
+根目录有 15+ 个`.js` 实验脚本（`sweep2.js` ,`hunt_creatures.js` ,`transplant.js` ,`mutate_jelly.js` ,`find_creatures.js` ,`compare_grids.js` ...），没有 README 说明运行方式和依赖关系。PLAN.md 里提到"每批 ≤4 配置 × 800 步，避开 120s 命令上限"——说明脚本执行有环境约束，但新人无从知晓。
+
+### 7. 魔法数字与命名不一致
+`HEX_RAD = 0.54` 、`PAL_N = 64` 、`bound = Math.ceil(rad * 1.6) + 1` 、`view.z = Math.min(...) * 0.94` 等散布各处，缺乏集中常量定义。命名上`CH_COLORS` 、`CHH` （canvas height）、`palRgb` 、`crW` /`crTap` 缩写风格不统一。

@@ -1,7 +1,7 @@
 // 参数空间扫描：寻找“稳定且紧凑且有动态”的六角 Lenia 参数（问题3：大多是爆满/速死）
 // 判定：DEAD(<0.03) | BLOWN(>0.55) | STATIC(活性≈0) | OK | JEWEL(紧凑+动态+稳定)
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/index.html", "utf8");
+const html = fs.readFileSync(__dirname + "/../index.html", "utf8");
 const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function makeEl(){return{style:{},innerHTML:'',textContent:'',value:'0',classList:{add(){},remove(){},toggle(){}},addEventListener(){},appendChild(){},getContext(){return new Proxy({},{get(t,p){if(p==='canvas')return{width:0,height:0};if(p==='createImageData')return(w,h)=>({data:new Uint8ClampedArray(w*h*4),width:w,height:h});return t[p]!==undefined?t[p]:()=>{}},set(){return true}})},getBoundingClientRect(){return{left:0,top:0}},width:0,height:0}}
 const els={};

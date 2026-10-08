@@ -1,2 +1,16 @@
-Thumbs.db
+# ── 日志与临时产物 ──
+*.log
+srv.log
+cg[0-9].txt            # 对照实验中间批次（已并入 compare_results.txt）
+
+# ── 参考用原版源码（本地保留，不入库）──
+lenia-reference/
+
+# ── 依赖与缓存 ──
+node_modules/
+__pycache__/
+*.pyc
+
+# ── 系统文件 ──
 .DS_Store
+Thumbs.db
