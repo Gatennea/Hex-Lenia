@@ -2,7 +2,14 @@
 
 当前问题：1 2 3 4 5 6 7
 
-已解决：/
+已解决：2、3
+
+- 2（已解决）：删除 tmpRe 占位、placeJelly 死函数、工具脚本未用变量；
+  死代码扫描固化为 tools/lint.js 的 W 级检查（当前 0 错 0 警）；
+  实验产物以 .gitignore（日志/中间批次）+ data/ 归位方案解决，不再视为残留
+- 3（已解决）：package.json（零依赖 scripts）+ 自研 lint + GitHub Actions CI + npm test；
+  **ESLint 以零依赖自研 tools/lint.js 替代**（语法/禁**/断链/死代码四查，0.1s 无安装），
+  Prettier 经拍板不采用（代码第一原则：AI 易理解、易修改、省费用）
 
 ### 1. 单文件巨型化，可维护性差
 `index.html` 共 1683 行 ，HTML + CSS + JS 混在一起。函数声明从第 228 行排到 1639 行，全局可变状态多达 30+ 个（W, H, CH, fields, rules, R, T, ...）。

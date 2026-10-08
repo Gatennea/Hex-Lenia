@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # 零依赖：无需 npm install，直接跑自研 lint + 回归
+      - name: 静态检查
+        run: node tools/lint.js
+      - name: 回归测试（FFT自检/启动/步进/渲染）
+        run: node tools/test_node.js

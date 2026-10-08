@@ -1,0 +1,12 @@
+{
+  "name": "hex-lenia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "六角 Lenia 元胞自动机：零依赖单页游戏 + 实验工具集",
+  "license": "MIT",
+  "scripts": {
+    "check": "node tools/lint.js",
+    "test": "node tools/lint.js && node tools/test_node.js",
+    "serve": "python3 -m http.server 8081 --bind 127.0.0.1"
+  }
+}

@@ -583,10 +583,6 @@ function applyJellyParams() {
   $("sT").value = T; $("vT").textContent = T;
   syncParamUI();
 }
-function placeJelly(cx, cy) {
-  stampBitmap(patternBitmap("jelly"), cx, cy);
-}
-
 // 图案位图（局部坐标，中心 ≈ ((w-1)/2, (h-1)/2)）
 function patternBitmap(name) {
   if (name === "jelly") {
@@ -702,7 +698,6 @@ function loadPattern(name) {
 // ════════════════════════════════════════════════════════════════
 //  模拟步进（FFT 卷积，与原版 NextGen/calc_once 同构）
 // ════════════════════════════════════════════════════════════════
-const tmpRe = { get() { return this._r; }, set v(x) { this._r = x; } }; // placeholder unused
 let bufRe = null, bufIm = null;
 
 function step() {

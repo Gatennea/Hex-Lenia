@@ -218,7 +218,6 @@ function trial(T) {
     const diff=S250?shapeMatch(S250,S500):9;
     const move=(c250&&c500)?Math.hypot(wd(c250[0],c500[0]),wd(c250[1],c500[1])):0;
     // 水母克隆检测
-    const jellyBm=api.patternBitmap("jelly");
     const jClone=diff<0.05 && Math.abs(d-0.0031)<0.0015 && speed>0.3 && seedIsJellyFamily(T.seed);
     if (osc>0) { cls="★OSC"; detail=`周期=${osc}`; }
     else if (jClone) { cls="水母克隆"; }

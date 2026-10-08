@@ -15,7 +15,6 @@ const fn=new Function("document","window","requestAnimationFrame","performance",
     setR(v){R=v;rebuildKernels(true)},setT(v){T=v}};`);
 const api = fn(document, window, requestAnimationFrame, performance);
 const N = api.N, W = 128;
-const SQ3 = Math.sqrt(3);
 
 const density=()=>{let s=0;const f=api.fields[0];for(let i=0;i<N;i++)s+=f[i];return s/N;};
 function com(){const f=api.fields[0];let sx=0,sy=0,ax=0,ay=0,n=0;
