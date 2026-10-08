@@ -1,0 +1,138 @@
+# 57 种原版生物 × 2000 步 长跑复核（六角核 · compare_grids hex 模式）
+# 存活: 35/57   死亡: 22/57   水母对照(5批): 活 活 活 活 活
+# 死亡名单: Discutium serratus [2S2]、Tetrascutium valvatus [S4(c)]、Pentascutium solidus [S5(a)]、Pentascutium valvatus [S5(b)]、Pentascutium gravidus [S5(c)]、Hexascutium [S6]、Heptascutium [S7]、Gyropteron serratus velox [2PG1]、Paraptera cavus furiosus [P4(-)]、Pentapteryx arcus labens [P5(a)]、Pentapteryx arcus valvatus [P5(g)]、Heptapteryx arcus labens [P7]、Heptapteryx cavus labens [P7]、Heptapteryx cavus labens cunctans [P7]、Octapteryx serratus cavus labens [2P8]、Nonapteryx serratus sinus labens [2P9]、Hexacaudopteryx [P6,4]、Heptahelicium solidus [H7]、Nonahelicium ignis [H9]、Octahelicium [H8]、Aerogeminium volitans [2G]、Decadentium rotans trioculi [2D10]
+# 生成: node tools/agg_longrun.js   ← data/longrun_p0..4.txt
+批次 [0,13)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Orbium unicaudatus ignis [O2(-)] (128²,230格)
+   六角: 活 act=9.8e-4 v=1.369 直=0.05 偏=19.2° 形=0.44
+Scutium solidus [S1(a)] (128²,233格)
+   六角: 活 act=8.3e-4 v=0.588 直=0.06 偏=20.3° 形=0.28
+Scutium valvatus [S1(c)] (128²,295格)
+   六角: 活 act=1.2e-3 v=0.652 直=0.04 偏=22.7° 形=0.30
+Discutium serratus [2S2] (128²,453格)
+   六角: 活 act=1.8e-3 v=0.803 直=0.02 偏=10.4° 形=0.26
+Discutium serratus [2S2] (128²,522格)
+   六角: 死 act=0.0e+0 v=0.059 直=0.53 偏=19.1° 形=1.00
+Triscutium serratus valvatus laterale [2S3] (128²,642格)
+   六角: 活 act=2.2e-3 v=0.746 直=0.12 偏=20.2° 形=0.32
+Tetrascutium solidus [S4(a)] (128²,1021格)
+   六角: 活 act=3.3e-5 v=0.385 直=0.00 偏=13.2° 形=0.93
+Tetrascutium valvatus [S4(c)] (128²,916格)
+   六角: 死 act=0.0e+0 v=0.140 直=0.23 偏=17.0° 形=1.00
+Pentascutium solidus [S5(a)] (128²,1208格)
+   六角: 死 act=0.0e+0 v=0.116 直=0.29 偏=12.5° 形=1.00
+Pentascutium valvatus [S5(b)] (128²,1194格)
+   六角: 死 act=0.0e+0 v=0.120 直=0.28 偏=13.5° 形=1.00
+Pentascutium gravidus [S5(c)] (128²,1317格)
+   六角: 死 act=0.0e+0 v=0.091 直=0.62 偏=18.7° 形=1.00
+Hexascutium [S6] (128²,1513格)
+   六角: 死 act=0.0e+0 v=0.110 直=0.31 偏=14.7° 形=1.00
+Heptascutium [S7] (256²,1854格)
+   六角: 死 act=0.0e+0 v=0.063 直=0.98 偏=7.0° 形=1.00
+DONE 14
+批次 [13,25)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Gyropteron serratus velox [2PG1] (128²,350格)
+   六角: 死 act=0.0e+0 v=0.059 直=0.95 偏=28.3° 形=1.00
+Synptera serratus cavus saliens [2P3] (128²,513格)
+   六角: 活 act=4.0e-5 v=0.121 直=0.01 偏=18.8° 形=0.97
+Pyroscutium ambiguus serratus [2PS3] (128²,716格)
+   六角: 活 act=3.1e-3 v=0.909 直=0.02 偏=16.8° 形=0.31
+Paraptera arcus saliens [P4(c)] (128²,812格)
+   六角: 活 act=3.6e-3 v=0.851 直=0.03 偏=10.2° 形=0.41
+Paraptera arcus pedes [P4(e)] (128²,907格)
+   六角: 活 act=7.9e-3 v=0.653 直=0.02 偏=13.9° 形=0.79
+Paraptera cavus pedes [P4(a)] (128²,669格)
+   六角: 活 act=2.9e-3 v=0.835 直=0.01 偏=13.5° 形=0.40
+Paraptera cavus furiosus [P4(-)] (128²,633格)
+   六角: 死 act=0.0e+0 v=0.597 直=0.05 偏=10.8° 形=1.00
+Paraptera serratus arcus saliens [2P4] (128²,790格)
+   六角: 活 act=4.2e-3 v=0.455 直=0.03 偏=3.1° 形=0.48
+Pentapteryx arcus labens [P5(a)] (128²,1032格)
+   六角: 死 act=0.0e+0 v=0.084 直=0.40 偏=6.7° 形=1.00
+Pentapteryx arcus saliens [P5(b)] (128²,1147格)
+   六角: 活 act=4.7e-3 v=0.842 直=0.02 偏=14.7° 形=0.43
+Pentapteryx cavus labens [P5(a)] (128²,854格)
+   六角: 活 act=3.0e-3 v=0.840 直=0.03 偏=16.3° 形=1.00
+Pentapteryx cavus saliens [P5(f)] (128²,890格)
+   六角: 活 act=2.1e-5 v=0.019 直=0.04 偏=6.1° 形=0.95
+DONE 13
+批次 [25,35)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Pentapteryx cavus pedes [P5(d)] (128²,957格)
+   六角: 活 act=4.1e-3 v=0.850 直=0.04 偏=13.6° 形=0.41
+Pentapteryx cavus furiosus [P5(c)] (128²,787格)
+   六角: 活 act=2.8e-3 v=0.805 直=0.02 偏=16.3° 形=0.76
+Pentapteryx arcus valvatus [P5(g)] (128²,1070格)
+   六角: 死 act=0.0e+0 v=0.101 直=0.33 偏=13.1° 形=1.00
+Pentapteryx serratus cavus labens [2P5] (128²,961格)
+   六角: 活 act=3.6e-3 v=0.575 直=0.06 偏=9.1° 形=0.72
+Hexapteryx arcus labens [P6] (128²,1341格)
+   六角: 活 act=4.7e-3 v=0.829 直=0.03 偏=13.8° 形=0.76
+Hexapteryx serratus cavus labens [2P6] (128²,1207格)
+   六角: 活 act=4.7e-3 v=0.644 直=0.03 偏=17.6° 形=0.98
+Heptapteryx arcus labens [P7] (128²,1516格)
+   六角: 死 act=0.0e+0 v=0.105 直=0.32 偏=10.0° 形=1.00
+Heptapteryx cavus labens [P7] (128²,1168格)
+   六角: 死 act=0.0e+0 v=0.089 直=0.37 偏=10.1° 形=1.00
+Heptapteryx cavus labens cunctans [P7] (128²,1128格)
+   六角: 死 act=0.0e+0 v=0.114 直=0.28 偏=11.6° 形=1.00
+Heptapteryx serratus cavus labens [2P7] (256²,1407格)
+   六角: 活 act=1.5e-3 v=0.728 直=0.04 偏=16.7° 形=0.41
+DONE 11
+批次 [35,46)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Heptapteryx serratus liquefaciens [2P7] (128²,1262格)
+   六角: 活 act=3.7e-3 v=0.632 直=0.01 偏=16.1° 形=0.63
+Octapteryx arcus labens [P8] (256²,1735格)
+   六角: 活 act=1.7e-3 v=0.960 直=0.06 偏=9.7° 形=0.51
+Octapteryx cavus labens [P8] (256²,1325格)
+   六角: 活 act=1.1e-3 v=0.959 直=0.00 偏=9.3° 形=1.00
+Octapteryx serratus cavus labens [2P8] (256²,1638格)
+   六角: 死 act=0.0e+0 v=0.065 直=0.96 偏=13.5° 形=1.00
+Nonapteryx cavus labens [P9] (256²,1582格)
+   六角: 活 act=1.7e-3 v=0.926 直=0.06 偏=11.4° 形=0.50
+Nonapteryx serratus sinus labens [2P9] (256²,1815格)
+   六角: 死 act=0.0e+0 v=0.065 直=0.96 偏=13.6° 形=1.00
+Decapteryx cavus labens [P10] (256²,1765格)
+   六角: 活 act=1.7e-3 v=0.929 直=0.06 偏=11.1° 形=0.52
+Hexacaudopteryx [P6,4] (256²,1691格)
+   六角: 死 act=0.0e+0 v=0.066 直=0.98 偏=11.9° 形=1.00
+Helicium arcus saliens ignis [H3(-)] (256²,642格)
+   六角: 活 act=6.4e-4 v=0.000 直=0.04 偏= -   形=0.46
+Helicium serratus ocellus [2H3] (256²,608格)
+   六角: 活 act=3.7e-4 v=0.007 直=0.06 偏=14.7° 形=0.70
+Heptahelicium solidus [H7] (256²,1556格)
+   六角: 死 act=0.0e+0 v=0.111 直=1.00 偏=28.5° 形=1.00
+DONE 12
+批次 [46,57)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Nonahelicium ignis [H9] (256²,2068格)
+   六角: 死 act=0.0e+0 v=0.068 直=0.94 偏=9.1° 形=1.00
+Octahelicium [H8] (256²,1790格)
+   六角: 死 act=0.0e+0 v=0.110 直=1.00 偏=30.0° 形=1.00
+Circium ventilans tenuis [~C0] (256²,60格)
+   六角: 活 act=2.6e-4 v=0.007 直=0.03 偏=0.0° 形=1.00
+Circium rupturus [C0] (256²,120格)
+   六角: 活 act=1.3e-4 v=0.007 直=0.00 偏=12.5° 形=1.00
+Aerogeminium volitans [2G] (256²,859格)
+   六角: 死 act=0.0e+0 v=0.064 直=0.99 偏=6.6° 形=1.00
+Hydrogeminium natans [3G] (256²,823格)
+   六角: 活 act=4.9e-5 v=0.062 直=0.00 偏=17.8° 形=0.98
+Gyrogeminium tardus [3GG] (256²,1112格)
+   六角: 活 act=1.4e-3 v=1.384 直=0.02 偏=10.6° 形=0.40
+Ferrokronium valvatus laterale [K6(3,3)] (256²,476格)
+   六角: 活 act=6.4e-4 v=0.612 直=0.01 偏=14.4° 形=0.54
+Crucium crux ventilans [3R4(3,3,3)] (256²,869格)
+   六角: 活 act=7.4e-9 v=0.001 直=0.03 偏=28.6° 形=0.53
+Decadentium rotans trioculi [2D10] (256²,1070格)
+   六角: 死 act=0.0e+0 v=0.219 直=0.51 偏=17.8° 形=1.00
+Bug(bigger) [~(bbug)] (256²,861格)
+   六角: 活 act=1.2e-1 v=1.801 直=0.00 偏=15.5° 形=0.95
+DONE 12

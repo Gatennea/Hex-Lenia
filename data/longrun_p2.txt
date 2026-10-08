@@ -1,0 +1,24 @@
+批次 [25,35)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Pentapteryx cavus pedes [P5(d)] (128²,957格)
+   六角: 活 act=4.1e-3 v=0.850 直=0.04 偏=13.6° 形=0.41
+Pentapteryx cavus furiosus [P5(c)] (128²,787格)
+   六角: 活 act=2.8e-3 v=0.805 直=0.02 偏=16.3° 形=0.76
+Pentapteryx arcus valvatus [P5(g)] (128²,1070格)
+   六角: 死 act=0.0e+0 v=0.101 直=0.33 偏=13.1° 形=1.00
+Pentapteryx serratus cavus labens [2P5] (128²,961格)
+   六角: 活 act=3.6e-3 v=0.575 直=0.06 偏=9.1° 形=0.72
+Hexapteryx arcus labens [P6] (128²,1341格)
+   六角: 活 act=4.7e-3 v=0.829 直=0.03 偏=13.8° 形=0.76
+Hexapteryx serratus cavus labens [2P6] (128²,1207格)
+   六角: 活 act=4.7e-3 v=0.644 直=0.03 偏=17.6° 形=0.98
+Heptapteryx arcus labens [P7] (128²,1516格)
+   六角: 死 act=0.0e+0 v=0.105 直=0.32 偏=10.0° 形=1.00
+Heptapteryx cavus labens [P7] (128²,1168格)
+   六角: 死 act=0.0e+0 v=0.089 直=0.37 偏=10.1° 形=1.00
+Heptapteryx cavus labens cunctans [P7] (128²,1128格)
+   六角: 死 act=0.0e+0 v=0.114 直=0.28 偏=11.6° 形=1.00
+Heptapteryx serratus cavus labens [2P7] (256²,1407格)
+   六角: 活 act=1.5e-3 v=0.728 直=0.04 偏=16.7° 形=0.41
+DONE 11

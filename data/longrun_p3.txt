@@ -1,0 +1,26 @@
+批次 [35,46)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Heptapteryx serratus liquefaciens [2P7] (128²,1262格)
+   六角: 活 act=3.7e-3 v=0.632 直=0.01 偏=16.1° 形=0.63
+Octapteryx arcus labens [P8] (256²,1735格)
+   六角: 活 act=1.7e-3 v=0.960 直=0.06 偏=9.7° 形=0.51
+Octapteryx cavus labens [P8] (256²,1325格)
+   六角: 活 act=1.1e-3 v=0.959 直=0.00 偏=9.3° 形=1.00
+Octapteryx serratus cavus labens [2P8] (256²,1638格)
+   六角: 死 act=0.0e+0 v=0.065 直=0.96 偏=13.5° 形=1.00
+Nonapteryx cavus labens [P9] (256²,1582格)
+   六角: 活 act=1.7e-3 v=0.926 直=0.06 偏=11.4° 形=0.50
+Nonapteryx serratus sinus labens [2P9] (256²,1815格)
+   六角: 死 act=0.0e+0 v=0.065 直=0.96 偏=13.6° 形=1.00
+Decapteryx cavus labens [P10] (256²,1765格)
+   六角: 活 act=1.7e-3 v=0.929 直=0.06 偏=11.1° 形=0.52
+Hexacaudopteryx [P6,4] (256²,1691格)
+   六角: 死 act=0.0e+0 v=0.066 直=0.98 偏=11.9° 形=1.00
+Helicium arcus saliens ignis [H3(-)] (256²,642格)
+   六角: 活 act=6.4e-4 v=0.000 直=0.04 偏= -   形=0.46
+Helicium serratus ocellus [2H3] (256²,608格)
+   六角: 活 act=3.7e-4 v=0.007 直=0.06 偏=14.7° 形=0.70
+Heptahelicium solidus [H7] (256²,1556格)
+   六角: 死 act=0.0e+0 v=0.111 直=1.00 偏=28.5° 形=1.00
+DONE 12

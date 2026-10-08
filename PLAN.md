@@ -220,3 +220,11 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   方格vs六角/Bug复盘(10条)/方法论与测量陷阱/局限与待办
 - 每节「严谨叙述+通俗概括」双层写法；数据全部回查 PLAN/COMPARISON/compare_results 原文核对
 - 关键修正口径：57幸存=200步上界(300步修正为hex40/sq54)；方格端为近似原版核型
+
+## P1-④ 长跑复核定稿（本轮）
+
+- 57种+水母×2000步（六角,自动升网格,PowerShell Start-Process 5批后台）→ data/longrun_2000.txt
+- **存活 35/57 (61.4%)**：200步57/57 → 300步40/57 → 2000步35/57（晚死5种:P.solidus/Hexascutium/Heptascutium/P4(-)/Decadentium）
+- 水母5批全活；工具: compare_grids新增[步数][hex]参数 + tools/agg_longrun.js 汇总器
+- 环境教训固化: 后台启动唯一可靠=PowerShell Start-Process（nohup链截断/timeout连坐/setsid缺失）
+- FINDINGS §6.4/§10 已回填，问题文档已解决:2、3、5a

@@ -1,0 +1,28 @@
+批次 [13,25)  网格=128²  步数=2000  (仅六角)
+🪼水母(对照) (128²,145格)
+   六角: 活 act=6.5e-4 v=1.060 直=0.05 偏=20.9° 形=0.10
+Gyropteron serratus velox [2PG1] (128²,350格)
+   六角: 死 act=0.0e+0 v=0.059 直=0.95 偏=28.3° 形=1.00
+Synptera serratus cavus saliens [2P3] (128²,513格)
+   六角: 活 act=4.0e-5 v=0.121 直=0.01 偏=18.8° 形=0.97
+Pyroscutium ambiguus serratus [2PS3] (128²,716格)
+   六角: 活 act=3.1e-3 v=0.909 直=0.02 偏=16.8° 形=0.31
+Paraptera arcus saliens [P4(c)] (128²,812格)
+   六角: 活 act=3.6e-3 v=0.851 直=0.03 偏=10.2° 形=0.41
+Paraptera arcus pedes [P4(e)] (128²,907格)
+   六角: 活 act=7.9e-3 v=0.653 直=0.02 偏=13.9° 形=0.79
+Paraptera cavus pedes [P4(a)] (128²,669格)
+   六角: 活 act=2.9e-3 v=0.835 直=0.01 偏=13.5° 形=0.40
+Paraptera cavus furiosus [P4(-)] (128²,633格)
+   六角: 死 act=0.0e+0 v=0.597 直=0.05 偏=10.8° 形=1.00
+Paraptera serratus arcus saliens [2P4] (128²,790格)
+   六角: 活 act=4.2e-3 v=0.455 直=0.03 偏=3.1° 形=0.48
+Pentapteryx arcus labens [P5(a)] (128²,1032格)
+   六角: 死 act=0.0e+0 v=0.084 直=0.40 偏=6.7° 形=1.00
+Pentapteryx arcus saliens [P5(b)] (128²,1147格)
+   六角: 活 act=4.7e-3 v=0.842 直=0.02 偏=14.7° 形=0.43
+Pentapteryx cavus labens [P5(a)] (128²,854格)
+   六角: 活 act=3.0e-3 v=0.840 直=0.03 偏=16.3° 形=1.00
+Pentapteryx cavus saliens [P5(f)] (128²,890格)
+   六角: 活 act=2.1e-5 v=0.019 直=0.04 偏=6.1° 形=0.95
+DONE 13
