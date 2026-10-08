@@ -509,10 +509,32 @@ function lifeToCells(st) {
   }
   return { arr: rows, w, h: rows.length };
 }
+// ── 页内诊断：日志环缓存 + 即时提示（零依赖，不需要后端）──
+window.__dbgLog = [];
+function dbg(msg) {
+  window.__dbgLog.push(new Date().toTimeString().slice(0, 8) + " " + msg);
+  if (window.__dbgLog.length > 60) window.__dbgLog.shift();
+  console.info("[HexLenia]", msg);
+}
+function showToast(msg, ms) {
+  let t = document.getElementById("toastBox");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toastBox";
+    t.style.cssText = "position:fixed;left:50%;bottom:72px;transform:translateX(-50%);background:rgba(18,22,32,.94);color:#e8f0ff;padding:9px 15px;border-radius:9px;font-size:13px;line-height:1.5;z-index:99;pointer-events:none;transition:opacity .4s;border:1px solid rgba(120,160,255,.45);max-width:86vw;box-shadow:0 4px 18px rgba(0,0,0,.4)";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { t.style.opacity = "0"; }, ms || 2800);
+}
 function placeLife(idx, cx, cy) {
   const e = LIFE_DATA[idx];
-  if (!e) return;
+  dbg("placeLife idx=" + idx + (e ? " → " + e.name : " ✗数据不存在"));
+  if (!e) { showToast("✗ 放置失败：LIFE_DATA[" + idx + "] 不存在（lifecreatures.js 没加载成功？）"); return; }
   const ci = e.rec.indexOf(";cells=");
+  if (ci < 0) { showToast("✗ " + e.name + " 记录缺 cells 段"); return; }
   const p = lifeRuleParse(e.rec.slice(0, ci));
   if (CH === 1) {   // 物种参数即身份（多物种时不动规则）
     R = p.R; T = p.T;
@@ -534,6 +556,9 @@ function placeLife(idx, cx, cy) {
       f[qq + rr * W] = v;
     }
   }
+  showToast("✓ 已放置 " + e.name + " [" + e.code + "]" +
+    (CH === 1 ? "　R=" + R + " μ=" + rules[0].m + " σ=" + rules[0].s : "（多物种模式，未改参数）"));
+  dbg("placed " + e.name + " @(" + cx + "," + cy + ")");
 }
 
 function applyJellyParams() {
@@ -1205,8 +1230,10 @@ stage.addEventListener("mousedown", e => {
     if (stampPattern) {
       // 印章模式：点击处放置选中图案（不清场）
       const [q0, r0] = worldToAxial(...screenToWorld(sx, sy));
+      dbg("画布点击 stamp=" + stampPattern + " @(" + q0 + "," + r0 + ")");
       placePattern(stampPattern, q0, r0);
     } else {
+      dbg("画布点击 → 画笔模式（stampPattern 为空）");
       painting = true;
       paintAt(sx, sy, e.altKey);
     }
@@ -1435,7 +1462,30 @@ function updatePatHint() {
     h.innerHTML = HINT_BASE;
   }
 }
-$("selPattern").addEventListener("change", e => { stampPattern = e.target.value; updatePatHint(); });
+$("selPattern").addEventListener("change", e => {
+  stampPattern = e.target.value;
+  updatePatHint();
+  const txt = e.target.selectedOptions[0] ? e.target.selectedOptions[0].textContent : stampPattern;
+  dbg("选中图案 -> " + stampPattern + "（" + txt + "）");
+  showToast("🖨 印章模式：" + txt + "　→ 点击画布放置");
+});
+// 🧪 自检：URL 加 ?selftest=1 自动跑完整放置链路并显示判定
+if (typeof location !== "undefined" && location.search.indexOf("selftest") >= 0) setTimeout(() => {
+  const sel = $("selPattern");
+  const hasOpt = !!sel.querySelector('option[value="life:1"]');
+  if (hasOpt) { sel.value = "life:1"; sel.dispatchEvent(new Event("change")); }
+  const stampOK = stampPattern === "life:1";
+  const mB = rules[0].m;
+  let d0 = 0; const f0 = fields[0]; for (let i = 0; i < N; i++) d0 += f0[i];
+  const rect = canvas.getBoundingClientRect();
+  stage.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, button: 0 }));
+  let d1 = 0; for (let i = 0; i < N; i++) d1 += f0[i];
+  const pass = stampOK && (rules[0].m !== mB || Math.abs(d1 - d0) > 0.5);
+  const v = "自检｜数据:" + LIFE_DATA.length + " 选项:" + (hasOpt ? "有" : "无") +
+    " 选中联动:" + (stampOK ? "OK" : "FAIL") + " 参数切换:" + (rules[0].m !== mB ? "OK" : "未变") +
+    " 细胞增量:" + (d1 - d0).toFixed(1) + " → " + (pass ? "PASS ✓" : "FAIL ✗");
+  dbg(v); showToast(v, 25000);
+}, 700);
 bindSlider("sRot", "vRot", v => { stampAngle = v; }, v => v + "°");
 // 参数预设（sweep2.js 扫参结果：JEWEL = 稳定+紧凑+有动态）
 const PARAM_PRESETS = {
