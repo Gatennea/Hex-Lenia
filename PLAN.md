@@ -192,3 +192,14 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 验证：node 集成测试（57条注入+放置+存活）✓ 回归 ✓ 浏览器（下拉62项/参数联动/提示）✓
 
 注：57为200步筛选上界（如 Orbium 变体600步会死）；长跑复核列为待办
+
+### 生物库放置修复（三层根因）
+
+- 解码 bug：placeLife 把二维 rows 当一维索引（arr[r*w+q]）→ 0格写入（toast✓但画面无变化）
+- 核半径回归：rebuildKernels 的 `rules[k].rad||R` 中 rad 是 applyPreset 快照，压过后改的 R →
+  改为始终用全局 R（水母 R=10 恰等于启动快照所以幸免，Scutium R=13/Bug R=26 全踩坑）
+- 网格空间：Bug(R=26,38×38) 实测 128² 各核半径全灭、256² 存活 → placeLife 自动升网格
+  （≥6×R 或 ≥1.8×种子边，升级时清场+居中+toast 提示），setGrid() 抽出复用
+- 诊断体系：dbg 环缓存(window.__dbgLog)+toast 即时反馈+?selftest=1 全链路自检
+- 验证：回归 PASS；冷启动 jelly@128² 0.0031→0.0031、Scutium@128² 0.0084→0.0094、
+  Bug 自动升256² 0.0096→0.0964 全部存活

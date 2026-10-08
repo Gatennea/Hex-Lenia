@@ -380,7 +380,8 @@ function buildKernel(rad) {
 // 规则参数变化 → 重建对应核；R/α/核类型 → 重建全部
 function rebuildKernels(all) {
   for (let k = 0; k < rules.length; k++) {
-    if (all || !rules[k].kf) rules[k].kf = buildKernel(rules[k].rad || R);
+    // 核半径始终取全局 R（rad 是 applyPreset 时的快照，会压过后来的 R 修改导致错配）
+    if (all || !rules[k].kf) { rules[k].rad = R; rules[k].kf = buildKernel(R); }
   }
 }
 
@@ -536,6 +537,17 @@ function placeLife(idx, cx, cy) {
   const ci = e.rec.indexOf(";cells=");
   if (ci < 0) { showToast("✗ " + e.name + " 记录缺 cells 段"); return; }
   const p = lifeRuleParse(e.rec.slice(0, ci));
+  const seed = lifeToCells(e.rec.slice(ci + 7));
+  // 自动升网格：实测 Bug(R=26, 38×38) 在 128² 各核半径全灭、256² 存活 → 需 ≥6×R 且 ≥1.8×种子边
+  let gridNote = "";
+  const need = Math.max(6 * p.R, seed.w * 1.8, seed.h * 1.8);
+  let g = 32; while (g < need && g < 512) g *= 2;
+  if (g > W) {
+    setGrid(g); clearAll();
+    cx = W >> 1; cy = H >> 1;   // 升网格会清空场景，改为居中放置
+    gridNote = "　⚠ 网格升至 " + g + "²，原内容清空";
+    dbg("自动升网格 -> " + g + "² (R=" + p.R + ", 种子" + seed.w + "x" + seed.h + ")");
+  }
   if (CH === 1) {   // 物种参数即身份（多物种时不动规则）
     R = p.R; T = p.T;
     rules[0].m = p.m; rules[0].s = p.s; rules[0].g = p.grow;
@@ -546,19 +558,19 @@ function placeLife(idx, cx, cy) {
     $("selCore").value = coreType;
     syncParamUI();
   }
-  const seed = lifeToCells(e.rec.slice(ci + 7));
   const f = fields[paintCh];
   const x0 = cx - (seed.w >> 1), y0 = cy - (seed.h >> 1);
+  let cnt = 0;
   for (let r = 0; r < seed.h; r++) for (let q = 0; q < seed.w; q++) {
-    const v = seed.arr[r * seed.w + q];
+    const v = (seed.arr[r] || [])[q];   // arr 是二维行数组
     if (v > 0 && v <= 1) {
       const qq = ((x0 + q) % W + W) % W, rr = ((y0 + r) % H + H) % H;
-      f[qq + rr * W] = v;
+      f[qq + rr * W] = v; cnt++;
     }
   }
-  showToast("✓ 已放置 " + e.name + " [" + e.code + "]" +
+  showToast("✓ 已放置 " + e.name + " [" + e.code + "]（" + cnt + "格）" + gridNote +
     (CH === 1 ? "　R=" + R + " μ=" + rules[0].m + " σ=" + rules[0].s : "（多物种模式，未改参数）"));
-  dbg("placed " + e.name + " @(" + cx + "," + cy + ")");
+  dbg("placed " + e.name + " @(" + cx + "," + cy + ") cells=" + cnt + " 格, 栅格=" + seed.w + "x" + seed.h);
 }
 
 function applyJellyParams() {
@@ -1480,10 +1492,10 @@ if (typeof location !== "undefined" && location.search.indexOf("selftest") >= 0)
   const rect = canvas.getBoundingClientRect();
   stage.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, button: 0 }));
   let d1 = 0; for (let i = 0; i < N; i++) d1 += f0[i];
-  const pass = stampOK && (rules[0].m !== mB || Math.abs(d1 - d0) > 0.5);
+  const pass = stampOK && (d1 - d0) > 0.5;
   const v = "自检｜数据:" + LIFE_DATA.length + " 选项:" + (hasOpt ? "有" : "无") +
     " 选中联动:" + (stampOK ? "OK" : "FAIL") + " 参数切换:" + (rules[0].m !== mB ? "OK" : "未变") +
-    " 细胞增量:" + (d1 - d0).toFixed(1) + " → " + (pass ? "PASS ✓" : "FAIL ✗");
+    " 细胞增量:" + (d1 - d0).toFixed(1) + " → " + (pass ? "PASS ✓" : "FAIL ✗（必须>0.5）");
   dbg(v); showToast(v, 25000);
 }, 700);
 bindSlider("sRot", "vRot", v => { stampAngle = v; }, v => v + "°");
@@ -1543,9 +1555,8 @@ bindSlider("sBrush", "vBrush", v => { brushR = v; }, v => v.toFixed(0));
 $("selCore").addEventListener("change", e => { coreType = e.target.value; rebuildKernels(true); drawPlots(); });
 $("selGrow").addEventListener("change", e => { if (rules[curRule]) rules[curRule].g = e.target.value; drawPlots(); });
 $("selEco").addEventListener("change", e => applyPreset(e.target.value));
-$("selGrid").addEventListener("change", e => {
-  W = H = parseInt(e.target.value, 10);
-  N = W * H;
+function setGrid(n) {
+  W = H = n; N = n * n;
   allocBuffers();
   allocBucketBuffers();
   rebuildKernels(true);
@@ -1554,7 +1565,9 @@ $("selGrid").addEventListener("change", e => {
   fitView();
   updateTexScale();
   needRender = true;
-});
+  $("selGrid").value = String(n);
+}
+$("selGrid").addEventListener("change", e => setGrid(parseInt(e.target.value, 10)));
 
 // 规则 chips + 物种绘制选择
 function syncRuleUI() {
