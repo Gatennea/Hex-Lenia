@@ -196,27 +196,30 @@ function setup(cr) {
 
 // ---- 主流程 ----
 const A = +(process.argv[2] || 0), B = +(process.argv[3] || 7);
+const STEPS = process.argv[4] ? +process.argv[4] : 300;   // 可选：步数（长跑复核用）
+const HEX_ONLY = process.argv[5] === "hex";                // 可选：hex=只跑六角端
 const list = ["jelly"].concat(LIFE.slice(A, B).map(e => e));
-const STEPS = 300;
-console.log("批次 [" + A + "," + B + ")  网格=" + api.W + "²  步数=" + STEPS);
+console.log("批次 [" + A + "," + B + ")  网格=" + api.W + "²  步数=" + STEPS + (HEX_ONLY ? "  (仅六角)" : ""));
 const rows = [];
 for (const e of list) {
   const cr = loadCreature(e);
   const cnt = setup(cr);
   const grid = api.W;
   const hex = measure(STEPS, true);
-  // 方格核：只换 kf，其余全同
-  api.rules[0].kf = buildKernelSq(api.rules[0].rad || api.R);
-  setup2(cr);
-  const sq = measure(STEPS, false);
   const fmt = (m) => (m.alive ? "活" : "死") + " act=" + m.act.toExponential(1)
     + " v=" + m.speed.toFixed(3) + " 直=" + m.straight.toFixed(2)
     + " 偏=" + (m.latDev === null ? " -  " : m.latDev.toFixed(1) + "°")
     + " 形=" + m.shapeDiff.toFixed(2);
   console.log(cr.name + " (" + grid + "²," + cnt + "格)");
   console.log("   六角: " + fmt(hex));
-  console.log("   方格: " + fmt(sq));
-  rows.push({ name: cr.name, hex, sq });
+  if (!HEX_ONLY) {
+    // 方格核：只换 kf，其余全同
+    api.rules[0].kf = buildKernelSq(api.rules[0].rad || api.R);
+    setup2(cr);
+    const sq = measure(STEPS, false);
+    console.log("   方格: " + fmt(sq));
+    rows.push({ name: cr.name, hex, sq });
+  } else rows.push({ name: cr.name, hex });
 }
 console.log("DONE " + rows.length);
 
