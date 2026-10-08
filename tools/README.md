@@ -30,12 +30,14 @@
 
 ## ⚠️ 环境约束（踩过坑的）
 
-- **CLI 单命令 120s 上限** → 批量长任务用后台 + 轮询：
-  ```bash
-  nohup node tools/compare_grids.js 0 13 2000 hex > data/longrun_p0.txt 2>&1 &
-  # 轮询完成度：
-  grep -c DONE data/longrun_p*.txt
+- **CLI 单命令 120s 上限** → 批量长任务必须后台脱离会话，**本环境实测有效的唯一方式**：
+  ```powershell
+  # Windows PowerShell Start-Process：完全独立进程，不被会话/timeout 连坐杀（已验证 5 批长跑）
+  powershell -NoProfile -Command "Start-Process -WindowStyle Hidden node -ArgumentList 'tools/compare_grids.js','0','13','2000','hex' -RedirectStandardOutput 'data\longrun_p0.txt'"
+  # 轮询完成度：grep -l DONE data/longrun_p*.txt | wc -l
   ```
+  ⚠️ 三种已踩坑的失败方式：内联 `nohup … &` 链被执行层截断；`timeout N bash x.sh` 会把
+  后台子进程一并 TERM（连坐）；`setsid` 本环境不存在。
 - **性能以 Node 基准为准**：浏览器自动化环境比 Node 慢 8-25×，间歇超时
 - **npm 本地可能挂起**（联网检查撞网络限制）→ 仓库已带 `.npmrc` 禁网；本环境直接 `node tools/...` 最稳
 - 实验产物统一写入 **`data/`**（stdout 重定向），日志类（`*.log`、中间批次）走 `.gitignore`
