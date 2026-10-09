@@ -287,3 +287,10 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   → rect 修正方向正确且必要；我方方格端 rect 版待重测（hex端已测:活,转静态v=0.366）
 - 结论回填口径：FINDINGS §7 局限2 的方格端部分关闭（实现无误差）；六角端差异=纯晶格效应
 - 环境教训：tabbit evaluate≈5s上限(超时吞返回值null)→分块+window.__C挂状态；原版页面多处let TDZ→桩函数链
+
+## 校准尾巴三项收口（本轮）
+
+- ① Bug rect 重测: data/bug_rect_retest.txt @256²×300 → 六角 活v=0.732直1.00(直线飞后冻结,act=0);
+  方格 活v=1.177act4.8e-2(活跃) vs 旧exp数据 1.565/1.996 vs 原版@128 v=3.599(网格不匹配待同格复对)
+- ② FINDINGS §10 局限2 已改写为已校准口径(Scutium逐位一致/纯晶格效应)
+- ③ 35/57 名单: Bug hex 已达确定性不动点(act=0固定点→2000步必活) → 名单不变,无需重跑
