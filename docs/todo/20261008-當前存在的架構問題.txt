@@ -2,7 +2,7 @@
 
 当前问题：1 2 3 4 5 6 7
 
-已解决：1、2、3、4、5a、6、7
+已解决：1、2、3、4、5(除5g待定)、6、7
 
 - 1（已解决，P2-⑤）：拆分为 css/style.css + js/{constants,core,render,ui}.js + 薄壳 index.html
   （9.7KB），经典 script 顺序加载、零构建、file:// 兼容；迁移脚本一次性断言执行

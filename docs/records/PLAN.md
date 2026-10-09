@@ -275,3 +275,15 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   kernel_/delta_ 参数变量名)→InitArray→AddCells(rec细胞串)→循环Step(300)→采样密度/质心速度
 → 与 data/compare_results.txt 方格端数据对表(Scutium sq v=0.855 / Bug sq v=1.996@300步)
 - 目的: 校准方格端保真度(dt/T语义、核归一、边界)，回填 FINDINGS §7 局限2 的'原版复跑校准'
+
+## P4-5b② 原版引擎校准——完成（本轮）✅✅
+
+- 驱动链：分块 evaluate(100步/次,破5s上限) + 打桩(Step/ClearField/统计UI链,清场纯化) +
+  F_SIZE=128(原生即128) + NS/delta_c/delta_w/TS/coreID/deltaID + CalcKernel + AddCells(rec同源串) + NextGen×300
+- **对齐实锤 @128² 300代**：
+  Scutium solidus: 原版 v=0.855 直=0.19 d0=0.00838 ↔ 我方方格端 v=0.855 直=0.19 d0=0.00838
+  → **逐位级一致**：核归一/dt=1/T/FFT/环面边界全部保真，方格端=已校准 ✓
+  Bug(bigger) 原版真stpz1/4核: v=3.599 直=0.14 存活 vs 我方旧exp近似数据 v=1.996
+  → rect 修正方向正确且必要；我方方格端 rect 版待重测（hex端已测:活,转静态v=0.366）
+- 结论回填口径：FINDINGS §7 局限2 的方格端部分关闭（实现无误差）；六角端差异=纯晶格效应
+- 环境教训：tabbit evaluate≈5s上限(超时吞返回值null)→分块+window.__C挂状态；原版页面多处let TDZ→桩函数链
