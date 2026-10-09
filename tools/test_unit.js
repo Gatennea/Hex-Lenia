@@ -20,6 +20,7 @@ return {
   get W(){return W}, get N(){return N}, get R(){return R}, get T(){return T},
   get rules(){return rules}, get fields(){return fields}, get coreType(){return coreType},
   setRings: (b, c) => { ringB = b; ringC = c; },
+  setParams: (r, t, c) => { R = r; T = t; coreType = c; },
 };`)();
 
 let pass = 0, fail = 0;
@@ -90,6 +91,23 @@ T("taps 与空间核同步归一", Math.abs(kf.taps.reduce((a, _, i, arr) => i %
   api.setRings(0, 0.62);
   const k3 = api.buildKernel(10);
   T("β=0 回到单环（与基线逐位一致）", k3.sp[6] === k1.sp[6] && k3.sp[2] === k1.sp[2]);
+}
+
+// 7.6 原版多环带（quad4(1/2,1) 环层平铺，KernelFunc 语义）
+{
+  const p1 = api.lifeRuleParse("R=10;k=quad4(1/2,1);d=quad4(0.35,0.061)*0.1");
+  T("带参核解析 bands=[0.5,1] + poly", p1.core === "poly" && p1.bands && p1.bands.length === 2 && p1.bands[0] === 0.5 && p1.bands[1] === 1, JSON.stringify(p1.bands));
+  const p2 = api.lifeRuleParse("R=13;k=quad4(5/12,1,1/2);d=quad4(0.272,0.0375)*0.1");
+  T("分数峰高解析 5/12", p2.bands && Math.abs(p2.bands[0] - 5 / 12) < 1e-12 && p2.bands[1] === 1 && p2.bands[2] === 0.5, JSON.stringify(p2.bands));
+  const p3 = api.lifeRuleParse("R=13;k=bump4;d=gaus(0.29,0.043)*0.1");
+  T("无参核不产 bands", !p3.bands);
+  api.setParams(13, 10, "poly");
+  const k = api.buildKernel(12, [0.5, 1]);   // n=2：d=3→环0分位0.5；d=9→环1分位0.5
+  let s = 0; for (const v of k.sp) s += v;
+  T("带参核 ΣK=1", Math.abs(s - 1) < 1e-12, "Σ=" + s);
+  const ratio = k.sp[9] / k.sp[3];
+  T("环层平铺峰高比 = bands[1]/bands[0] = 2", Math.abs(ratio - 2) < 1e-9, "ratio=" + ratio);
+  api.setParams(10, 10, "exp");
 }
 
 // 7. 引擎独立性：core-only 环境完整跑 100 步存活（solo 预设内含随机初始化）

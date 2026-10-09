@@ -41,6 +41,7 @@ function placeLife(idx, cx, cy) {
   if (CH === 1) {   // 物种参数即身份（多物种时不动规则）
     setGlobalR(p.R); T = p.T;
     rules[0].m = p.m; rules[0].s = p.s; rules[0].g = p.grow;
+    rules[0].bands = p.bands || null;   // 原版多环带参数（quad4(1/2,1) 等）
     coreType = p.core;
     rebuildKernels(true);
     $("sR").value = R; $("vR").textContent = R;
@@ -68,6 +69,7 @@ function applyJellyParams() {
   if (CH !== 1) return;
   R = 10; T = 10;
   rules[0].m = 0.15; rules[0].s = 0.016; rules[0].g = "gaus";
+  rules[0].bands = null;   // 水母不继承前一物种的多环带
   rebuildKernels(true);
   $("sR").value = R; $("vR").textContent = R;
   $("sT").value = T; $("vT").textContent = T;
@@ -307,7 +309,7 @@ function serializeState() {
     grid: W, ch: CH, gen,
     R, T, alpha, coreType,
     ring: [ringB, ringC],
-    rules: rules.map(r => ({ src: r.src, dst: r.dst, m: r.m, s: r.s, h: r.h, g: r.g })),
+    rules: rules.map(r => ({ src: r.src, dst: r.dst, m: r.m, s: r.s, h: r.h, g: r.g, bands: r.bands || null })),
     scheme, tone, lightBg,
     cells
   };
@@ -328,7 +330,8 @@ function deserializeState(o) {
   // 规则
   rules = o.rules.slice(0, 12).map(r => ({
     src: Math.min(CH - 1, r.src | 0), dst: Math.min(CH - 1, r.dst | 0),
-    m: +r.m, s: +r.s, h: +r.h, g: GROWTHS[r.g] ? r.g : "gaus"
+    m: +r.m, s: +r.s, h: +r.h, g: GROWTHS[r.g] ? r.g : "gaus",
+    bands: Array.isArray(r.bands) ? r.bands : null
   }));
   syncSrcChannels();
   rebuildKernels(true);
@@ -703,7 +706,7 @@ requestAnimationFrame(loop);
 
 // ── 5c URL 参数分享：#p=<base64(JSON)>，只含参数不含场（场走 JSON 存档）──
 function buildShareHash() {
-  const o = { v: 1, g: W, R, T, a: alpha, c: coreType, rb: ringB, rc: ringC, rs: rules.map(r => [r.src, r.dst, +r.m.toFixed(4), +r.s.toFixed(4), r.h, r.g]) };
+  const o = { v: 1, g: W, R, T, a: alpha, c: coreType, rb: ringB, rc: ringC, rs: rules.map(r => [r.src, r.dst, +r.m.toFixed(4), +r.s.toFixed(4), r.h, r.g, r.bands || null]) };
   return "#p=" + btoa(JSON.stringify(o));
 }
 function applyShareHash() {
@@ -715,7 +718,7 @@ function applyShareHash() {
     setGlobalR(o.R); T = o.T; alpha = o.a; coreType = o.c;
     ringB = o.rb != null ? +o.rb : 0; ringC = o.rc != null ? +o.rc : 0.62;
     if (o.rs && o.rs.length === rules.length)
-      o.rs.forEach((a, i) => Object.assign(rules[i], { src: a[0], dst: a[1], m: a[2], s: a[3], h: a[4], g: a[5] }));
+      o.rs.forEach((a, i) => Object.assign(rules[i], { src: a[0], dst: a[1], m: a[2], s: a[3], h: a[4], g: a[5], bands: a[6] || null }));
     rebuildKernels(true);
     $("sR").value = R; $("vR").textContent = R;
     $("sT").value = T; $("vT").textContent = T;

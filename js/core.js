@@ -98,13 +98,21 @@ function fft2d(re, im, w, h, dir) {
 // ════════════════════════════════════════════════════════════════
 // 多环核形状（5f）：基环 core(d/R) + 可选第二环带（峰值在 ringC·R 处，沿用所选核型轮廓）
 // ringB=0 时逐位等价单环；带内参数 t∈[0.5,1] 使所选核的峰值恰落在环心
-function bandW(core, d, rad) {
-  const v1 = core(d / rad, alpha);
+// 原版多环带（KernelFunc 层）：核形状按环层平铺 × 各环峰高；
+// 原版 CalcKernel 末尾 ΣK=1 归一化会把常数除数 B_DIV 约掉，故只留相对峰高
+function layeredW(core, d, rad, bs) {
+  const n = bs.length;
+  const Rr = (d / rad) * n;
+  const b = Math.floor(Rr);
+  return b >= n ? 0 : core(Rr - b, alpha) * bs[b];
+}
+function bandW(core, d, rad, bands) {
+  const v1 = bands ? layeredW(core, d, rad, bands) : core(d / rad, alpha);
   if (ringB <= 0) return v1;
   const t = 0.5 + Math.abs(d - ringC * rad) / (2 * RING_W * rad);
   return (1 - ringB) * v1 + ringB * core(t, alpha);
 }
-function buildKernel(rad) {
+function buildKernel(rad, bands) {
   const sp = new Float64Array(N);          // 空间核，中心在索引 0
   const taps = [];                         // {dq,dr,w} 供自检
   const bound = Math.ceil(rad * KERNEL_BOUND_RATIO) + 1;
@@ -116,7 +124,7 @@ function buildKernel(rad) {
       const dx = dq + dr / 2;
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d >= rad) continue;              // 支撑 |x| < R（论文）
-      const w = bandW(core, d, rad);
+      const w = bandW(core, d, rad, bands);
       if (w === 0) continue;
       const qi = ((dq % W) + W) % W, ri = ((dr % H) + H) % H;
       sp[ri * W + qi] = w;
@@ -141,7 +149,7 @@ function rebuildKernels(all) {
     if (all || !rules[k].kf) {
       const rad = rules[k].rad != null ? rules[k].rad : R;
       rules[k].rad = rad;
-      rules[k].kf = buildKernel(rad);
+      rules[k].kf = buildKernel(rad, rules[k].bands);
     }
   }
 }
@@ -249,8 +257,17 @@ const LIFE_DATA = (typeof LENIA_LIFEFORMS !== "undefined") ? LENIA_LIFEFORMS : [
 function lifeRuleParse(rs) {
   const o = { R: 10, T: 10, m: 0.15, s: 0.016, core: "exp", grow: "gaus" };
   const mR = rs.match(/R=(\d+)/); if (mR) o.R = +mR[1];
-  const mk = rs.match(/k=([a-z0-9]+(?:\/[0-9]+)*)/);
-  if (mk) { const c = mk[1]; o.core = c === "quad4" ? "poly" : (c === "stpz1/4" || c === "stpz" || c === "life") ? "rect" : "exp"; }
+  const mk = rs.match(/k=([a-z0-9]+(?:\/[0-9]+)*)(?:\(([^)]*)\))?/);
+  if (mk) {
+    const c = mk[1];
+    o.core = c === "quad4" ? "poly" : (c === "stpz1/4" || c === "stpz" || c === "life") ? "rect" : "exp";
+    // 原版 KernelFunc 多环带参数：quad4(1/2,1) → 两环层峰高 [0.5,1]；分数 a/b 解析；≤1 值视为无参
+    if (mk[2]) {
+      const vals = mk[2].split(",").map(s => s.trim()).filter(Boolean)
+        .map(s => s.indexOf("/") >= 0 ? +s.split("/")[0] / +s.split("/")[1] : +s);
+      if (vals.length > 1 && vals.every(v => isFinite(v))) o.bands = vals;
+    }
+  }
   const md = rs.match(/d=([a-z0-9]+)\((-?[\d.eE+-]+),(-?[\d.eE+-]+)\)/);
   if (md) { o.grow = md[1] === "quad4" ? "poly" : md[1] === "stpz" ? "rect" : md[1] === "trap" ? "trap" : "gaus"; o.m = +md[2]; o.s = +md[3]; }
   const mt = rs.match(/\*([\d.]+)\s*$/); if (mt && +mt[1] > 0) o.T = Math.round(1 / +mt[1]);

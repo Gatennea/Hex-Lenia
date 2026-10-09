@@ -180,7 +180,7 @@ function setup(cr) {
   let g = 32; while (g < need && g < 512) g *= 2;
   if (g > api.W) api.setGrid(g);
   const R = p.R;
-  Object.assign(api.rules[0], { m: p.m, s: p.s, g: p.grow, h: 1, src: 0, dst: 0 });
+  Object.assign(api.rules[0], { m: p.m, s: p.s, g: p.grow, h: 1, src: 0, dst: 0, bands: p.bands || null });
   api.setParams(R, p.T, p.core);   // 写全局 R/T/coreType
   api.rebuildKernels(true);       // 六角核
   api.clearAll();

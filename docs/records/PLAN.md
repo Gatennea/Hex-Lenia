@@ -294,3 +294,17 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   方格 活v=1.177act4.8e-2(活跃) vs 旧exp数据 1.565/1.996 vs 原版@128 v=3.599(网格不匹配待同格复对)
 - ② FINDINGS §10 局限2 已改写为已校准口径(Scutium逐位一致/纯晶格效应)
 - ③ 35/57 名单: Bug hex 已达确定性不动点(act=0固定点→2000步必活) → 名单不变,无需重跑
+
+## 带参核(quad4(...))修复与原版对拍（本轮）
+
+- 起因: 用户质疑 stpz1/4→rect——源码三重证据驳回(LaTeX公式/CoreFunc case3/kRect逐字一致;
+  /4=q=1/4非四段) 但顺出真窟窿: **21/57 是 quad4(1/2,1) 带参多环核, 参数曾被解析器丢弃**
+- 原版语义实证: ParseRule→kB=[6,12](12分位=[0.5,1]) ruleL=1 双环激活; KernelFunc 环层平铺
+  CoreFunc(R%1)×峰高/B_DIV(ΣK=1归一后B_DIV约掉)
+- 修复: lifeRuleParse捕获括号+分数解析→bands; layeredW环层平铺; rebuildKernels/放置/存档/分享/K曲线全链;
+  水母防继承bands=null; 单测25/25(峰高比=2硬断言)
+- 全量重跑: 5批 DONE=5 → data/compare_results_bands.txt
+- **原版对拍(idx3 Discutium R=10 quad4(1/2,1) @128²)**: 注入Σ271.4 vs 原版271.3 逐位;
+  公式逐式一致(kPoly≡case1/gPoly≡quad4增长/α=4/optCenter=OFF);
+  v: 原版0.651 vs 我方方格0.676(3.7%) 直0.23/0.21 → 归因: 轨道敏感性(待敏感度复验), 非实现误差
+- 原版驱动坑(记录): 页面init崩溃F_SIZE=0→显式设128; TDZ桩18函数; evaluate≈5s上限→分块

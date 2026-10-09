@@ -331,7 +331,7 @@ function drawPlots() {
   pkc.strokeStyle = curC; pkc.lineWidth = 1.8; pkc.beginPath();
   for (let px = 0; px <= PW - 6; px++) {
     const dd = (px / (PW - 6)) * xMax;
-    const v = dd < R ? bandW(CORES[coreType], dd, R) : 0;
+    const v = dd < R ? bandW(CORES[coreType], dd, R, rules[curRule] ? rules[curRule].bands : null) : 0;
     const x = 3 + px, y = (PH - 4) - v * (PH - 9);
     if (px === 0) pkc.moveTo(x, y); else pkc.lineTo(x, y);
   }
