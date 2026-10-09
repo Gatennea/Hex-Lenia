@@ -264,3 +264,14 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 影响面: 57种中仅 Bug(bigger) 1种（其余本就非 stpz）; 单测 20/20（新增 stpz→rect 断言）
 - Bug rect核@256² 600步: 活（act=0 由混沌转静止——真伪待 5b② 原版引擎校准）
 - 5b② 原版 Lenia.html 无头校准: 待办（需先逆向其状态注入/步进 API）
+
+## P4-5b② 原版引擎校准——API 侦察图（下轮作战指引）
+
+- 入口已定位（lenia-reference/Lenia.html 行号）：
+  Step()@1306 单步 | NextGen()@1416 一代 | InitAllArrays()@1011 / InitArray()@1832 状态分配
+  **AddCells(cellSt,isZoom,isRandom)@2098 ← 注入细胞，cellSt 与我们 rec 的 cells 段同源格式**
+  AddRandom()@1854 随机场 | UseSeed/Random@1383-1387 确定性RNG
+- 作战步骤：http://127.0.0.1:8081/lenia-reference/Lenia.html 打开→停其主循环→设参数(下一步侦察
+  kernel_/delta_ 参数变量名)→InitArray→AddCells(rec细胞串)→循环Step(300)→采样密度/质心速度
+→ 与 data/compare_results.txt 方格端数据对表(Scutium sq v=0.855 / Bug sq v=1.996@300步)
+- 目的: 校准方格端保真度(dt/T语义、核归一、边界)，回填 FINDINGS §7 局限2 的'原版复跑校准'
