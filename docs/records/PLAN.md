@@ -248,3 +248,11 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   两份任务文档→todo；全量交叉引用 PCRE 修复（防双前缀）；exp/compare 数据归档 data/
 - lint 补 DEAD_SKIP（test_unit 模板字符串桩误报）；四关复跑全绿（浏览器 selftest 增量91.7 PASS）
 - 问题文档已解决：1、2、3、4、5a、6、7 —— 仅剩 5 的其余功能项（P4）
+
+## P4 进展（本轮 5c/5d/5e）✅
+
+- 5c URL参数分享: 🔗参数链接按钮(base64仅参数~107字符,剪贴板+prompt回退)+启动自动应用#p=; 验证恢复/复制✓
+- 5d per-rule R: rebuildKernels按规则rad + setGlobalR统一5处全局写入 + chip行R输入框; 验证[13,10,10,10]/独立kf/全局[12,12,12,12]/单物种不变 ✓
+- 5e 时间回溯: histBuf环形快照(8MB,128²=64帧,换格/倒流失效) + ←键逐步回退; 验证5→4→3+空缓冲提示 ✓
+  教训: 数组命名history遮蔽window.history→histBuf+显式window.history
+- 剩余: 5f 多环核(中)、5b 方格端原版校准(中高,研究)、5g 录像(待定)

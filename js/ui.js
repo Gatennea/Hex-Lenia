@@ -270,6 +270,8 @@ stage.addEventListener("wheel", e => {
 window.addEventListener("keydown", e => {
   if (e.code === "Space" && e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT") {
     e.preventDefault(); toggleRun();
+  } else if (e.code === "ArrowLeft" && e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT") {
+    e.preventDefault(); popHistory();   // 5e 时间回溯
   }
 });
 
@@ -437,7 +439,7 @@ function toggleRun() {
   btnRun.classList.toggle("run", running);
 }
 btnRun.addEventListener("click", toggleRun);
-$("btnStep").addEventListener("click", () => { if (running) toggleRun(); step(); needRender = true; });
+$("btnStep").addEventListener("click", () => { if (running) toggleRun(); step(); pushHistory(); needRender = true; });
 $("btnRandom").addEventListener("click", () => { randomInit(); gen = 0; });
 $("btnClear").addEventListener("click", clearAll);
 $("btnShot").addEventListener("click", screenshot);
@@ -456,7 +458,7 @@ $("fileImport").addEventListener("change", e => {
 });
 let stampPattern = "";          // 当前印章（"" = 笔刷绘制模式）
 let stampAngle = 0;             // 印章旋转角度（度，对水母/条纹生效）
-const HINT_BASE = "左键绘制 · 右键/中键拖拽平移 · 滚轮缩放 · Alt+左键擦除 · 空格暂停 · 点「? 帮助」看参数说明";
+const HINT_BASE = "左键绘制 · 右键/中键拖拽平移 · 滚轮缩放 · Alt+左键擦除 · 空格暂停 · 点「? 帮助」看参数说明 · ← 回溯";
 function updatePatHint() {
   const h = $("hintLine");
   if (stampPattern) {
@@ -644,7 +646,7 @@ function loop(ts) {
     let steps = 0;
     const cap = stepMs > 8 ? 3 : 8;               // 慢机自适应：降每帧步数保流畅
     while (acc >= interval && steps < cap) { step(); acc -= interval; steps++; }
-    if (steps > 0) needRender = true;
+    if (steps > 0) { needRender = true; pushHistory(); }
   } else acc = 0;
 
   if (needRender) { render(); needRender = false; }
@@ -722,7 +724,7 @@ function applyShareHash() {
 }
 $("btnUrl").addEventListener("click", () => {
   const hash = buildShareHash();
-  try { history.replaceState(null, "", hash); } catch (_e) {}
+  try { window.history.replaceState(null, "", hash); } catch (_e) {}
   const url = location.href.split("#")[0] + hash;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(
@@ -732,3 +734,24 @@ $("btnUrl").addEventListener("click", () => {
   dbg("share url len=" + url.length);
 });
 applyShareHash();  // 启动时若带 #p= 则覆盖参数
+
+// ── 5e 时间回溯：环形快照缓冲（只存场，内存预算 ~8MB，换网格/时间倒流自动失效）──
+const histBuf = [];
+let histN = 0;
+function histCap() { return Math.max(20, Math.min(120, Math.floor(8 * 1024 * 1024 / (N * 8 * CH)))); }
+function pushHistory() {
+  if (histN !== N) { histBuf.length = 0; histN = N; }
+  if (histBuf.length && gen <= histBuf[histBuf.length - 1].gen) histBuf.length = 0;
+  histBuf.push({ gen, cells: fields.map(f => Float64Array.from(f)) });
+  if (histBuf.length > histCap()) histBuf.shift();
+}
+function popHistory() {
+  let snap = null;
+  while (histBuf.length) { const s = histBuf.pop(); if (s.gen < gen) { snap = s; break; } }
+  if (!snap) { showToast("⏪ 没有更早的历史（缓冲 " + histCap() + " 帧）"); return; }
+  if (snap.cells.length !== CH || snap.cells[0].length !== N) { showToast("⏪ 网格/通道已变，历史失效"); return; }
+  for (let c = 0; c < CH; c++) fields[c].set(snap.cells[c]);
+  gen = snap.gen; texDirty = true; needRender = true;
+  showToast("⏪ 回溯到第 " + gen + " 步（缓冲剩 " + histBuf.length + " 帧）");
+  dbg("popHistory -> gen=" + gen + " left=" + histBuf.length);
+}
