@@ -670,3 +670,41 @@ if (LIFE_DATA.length) {
 }
 needRender = true;
 requestAnimationFrame(loop);
+
+// ── 5c URL 参数分享：#p=<base64(JSON)>，只含参数不含场（场走 JSON 存档）──
+function buildShareHash() {
+  const o = { v: 1, g: W, R, T, a: alpha, c: coreType, rs: rules.map(r => [r.src, r.dst, +r.m.toFixed(4), +r.s.toFixed(4), r.h, r.g]) };
+  return "#p=" + btoa(JSON.stringify(o));
+}
+function applyShareHash() {
+  if (typeof location === "undefined" || location.hash.indexOf("#p=") !== 0) return false;
+  try {
+    const o = JSON.parse(atob(location.hash.slice(3)));
+    if (o.v !== 1) throw new Error("version mismatch");
+    if (o.g && o.g !== W && [32, 64, 128, 256, 512].indexOf(o.g) >= 0) setGrid(o.g);
+    R = o.R; T = o.T; alpha = o.a; coreType = o.c;
+    if (o.rs && o.rs.length === rules.length)
+      o.rs.forEach((a, i) => Object.assign(rules[i], { src: a[0], dst: a[1], m: a[2], s: a[3], h: a[4], g: a[5] }));
+    rebuildKernels(true);
+    $("sR").value = R; $("vR").textContent = R;
+    $("sT").value = T; $("vT").textContent = T;
+    $("sA").value = alpha; $("vA").textContent = alpha;
+    $("selCore").value = coreType;
+    syncRuleUI(); syncParamUI();
+    showToast("🔗 已从链接载入参数：R=" + R + " μ=" + rules[0].m.toFixed(3) + (rules.length > 1 ? " ×" + rules.length + "条规则" : ""));
+    dbg("applyShareHash ok g=" + W + " rules=" + rules.length);
+    return true;
+  } catch (e) { showToast("🔗 链接参数解析失败：" + e.message); dbg("applyShareHash fail: " + e.message); return false; }
+}
+$("btnUrl").addEventListener("click", () => {
+  const hash = buildShareHash();
+  try { history.replaceState(null, "", hash); } catch (_e) {}
+  const url = location.href.split("#")[0] + hash;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(
+      () => showToast("🔗 参数链接已复制（可直接分享；不含场数据，打开即应用）"),
+      () => window.prompt("复制链接：", url));
+  } else window.prompt("复制链接：", url);
+  dbg("share url len=" + url.length);
+});
+applyShareHash();  // 启动时若带 #p= 则覆盖参数
