@@ -256,3 +256,11 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 5e 时间回溯: histBuf环形快照(8MB,128²=64帧,换格/倒流失效) + ←键逐步回退; 验证5→4→3+空缓冲提示 ✓
   教训: 数组命名history遮蔽window.history→histBuf+显式window.history
 - 剩余: 5f 多环核(中)、5b 方格端原版校准(中高,研究)、5g 录像(待定)
+
+## P4-5b①：stpz1/4 保真修复（本轮）✅
+
+- 原版源码实锤: stpz1/4=(r∈[0.25,0.75])?1:0 与我们 kRect 逐字一致; bump4=exp(a-a/4r(1-r)) 与 kExp 逐字一致
+- 修复 lifeRuleParse 的 k= 正则截断（[a-z0-9]+ → 含 /数字）→ stpz1/4 正确落 rect 分支
+- 影响面: 57种中仅 Bug(bigger) 1种（其余本就非 stpz）; 单测 20/20（新增 stpz→rect 断言）
+- Bug rect核@256² 600步: 活（act=0 由混沌转静止——真伪待 5b② 原版引擎校准）
+- 5b② 原版 Lenia.html 无头校准: 待办（需先逆向其状态注入/步进 API）

@@ -67,6 +67,7 @@ T("taps 与空间核同步归一", Math.abs(kf.taps.reduce((a, _, i, arr) => i %
   T("lifeRuleParse 参数", p.R === 13 && p.m === 0.29 && p.s === 0.043 && p.grow === "gaus" && p.core === "exp" && p.T === 10, JSON.stringify(p));
   const p2 = api.lifeRuleParse("R=26;k=stpz1/4;d=gaus(0.31,0.05)*1");
   T("lifeRuleParse T=1(*1)", p2.T === 1 && p2.R === 26, JSON.stringify(p2));
+  T("stpz1/4 不再被正则截断 → rect 核（=原版 (r∈[.25,.75])?1:0）", p2.core === "rect", "core=" + p2.core);
 }
 
 // 6. 种子解码（明文格式）

@@ -249,7 +249,7 @@ const LIFE_DATA = (typeof LENIA_LIFEFORMS !== "undefined") ? LENIA_LIFEFORMS : [
 function lifeRuleParse(rs) {
   const o = { R: 10, T: 10, m: 0.15, s: 0.016, core: "exp", grow: "gaus" };
   const mR = rs.match(/R=(\d+)/); if (mR) o.R = +mR[1];
-  const mk = rs.match(/k=([a-z0-9]+)/);
+  const mk = rs.match(/k=([a-z0-9]+(?:\/[0-9]+)*)/);
   if (mk) { const c = mk[1]; o.core = c === "quad4" ? "poly" : (c === "stpz1/4" || c === "stpz" || c === "life") ? "rect" : "exp"; }
   const md = rs.match(/d=([a-z0-9]+)\((-?[\d.eE+-]+),(-?[\d.eE+-]+)\)/);
   if (md) { o.grow = md[1] === "quad4" ? "poly" : md[1] === "stpz" ? "rect" : md[1] === "trap" ? "trap" : "gaus"; o.m = +md[2]; o.s = +md[3]; }
