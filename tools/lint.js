@@ -68,6 +68,8 @@ for (const f of fs.readdirSync(path.join(ROOT, "tools")).filter(f => f.endsWith(
 //    注：不做 count==2 “未接线”启发式——函数声明+单次正常调用即 2 次，误报率 99%（实测 226 条）
 // 外部 API 白名单：被 tools 脚本按名提取源码调用（fn() 模式），文件内看似未引用
 const EXTERNAL_API = new Set(["loadPattern"]);
+// 死代码扫描跳过：test_unit.js 的 UI 桩定义在模板字符串里，非真实声明
+const DEAD_SKIP = new Set(["test_unit.js"]);
 function deadScan(label, src) {
   const decl = /\b(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/g;
   const names = new Set();
@@ -82,7 +84,7 @@ function deadScan(label, src) {
   }
 }
 deadScan("index.html", html);
-for (const f of fs.readdirSync(path.join(ROOT, "tools")).filter(f => f.endsWith(".js")))
+for (const f of fs.readdirSync(path.join(ROOT, "tools")).filter(f => f.endsWith(".js") && !DEAD_SKIP.has(f)))
   deadScan(`tools/${f}`, read(path.join(ROOT, "tools", f)));
 
 // ── 报告 ──

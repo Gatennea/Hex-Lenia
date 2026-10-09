@@ -1,6 +1,6 @@
 # 六角 Lenia — 迭代计划
 
-> 本计划基于重做后的架构（详见 DESIGN.md）。旧版（自造 cross 矩阵 + 每格
+> 本计划基于重做后的架构（详见 docs/guides/DESIGN.md）。旧版（自造 cross 矩阵 + 每格
 > 一次 fill 渲染，1-7 FPS）已废弃重写。
 
 ## 当前状态
@@ -62,7 +62,7 @@
 - 调参用扫描脚本批量跑（每批 ≤4 配置 × 800 步，避开 120s 命令上限）
 - JS 注意：`-(expr) ** 2` 有语法歧义，全项目禁用 `**`，用乘法/exp 展开
 
-## 原版预设移植实验（experiment_orbium.js，结果 exp_result.txt）
+## 原版预设移植实验（experiment_orbium.js，结果 data/exp_result.txt）
 
 **问题**：原版 Lenia 的预设在六角版行为会很不一样吗？
 
@@ -204,7 +204,7 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 验证：回归 PASS；冷启动 jelly@128² 0.0031→0.0031、Scutium@128² 0.0084→0.0094、
   Bug 自动升256² 0.0096→0.0964 全部存活
 
-## 方格核 vs 六角核 对照实验（COMPARISON.md，compare_grids.js/compare_results.txt）
+## 方格核 vs 六角核 对照实验（docs/records/COMPARISON.md，compare_grids.js/compare_results.txt）
 
 - 单变量：同引擎仅换核几何。300步。指标:存活/act/速度/直线度/晶格偏差/形变
 - 存活：原版57种 六角40(70.2%) vs 方格54(94.7%)；水母 hex活/sq死 → 双向本地优势
@@ -214,7 +214,7 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
   六角=自由航向(偏至30°)；H螺旋族反转(hex起飞→死 vs sq原地卷曲活)；水母=hex-native
 - 水母8批次重复逐位一致(可复现✓)
 
-## FINDINGS.md：迄今发现總結（用户要求的汇总文档）
+## docs/records/FINDINGS.md：迄今发现總結（用户要求的汇总文档）
 
 - 10节+附录：项目全景/引擎/参数域/水母完整画像/发现尝试/移植330→57→修正/
   方格vs六角/Bug复盘(10条)/方法论与测量陷阱/局限与待办
@@ -239,3 +239,12 @@ Aero/Hydrogeminium(R18)、Ferrokronium、Circium×2、Crucium(R27静物)、Decad
 - 四关验收全绿：lint断链语法 → 回归(与拆分前数值逐位一致) → 单测16/16 → 浏览器selftest(增量99.1 PASS)
 - npm test 三连 + CI 增加单测步骤；README 目录更新为目标结构
 - 问题文档已解决：1、2、3、4(Tier1)、5a、6（剩 5其余、7=P3/P4）
+
+## P3 收尾（⑦⑧，本轮）✅
+
+- ⑦ 命名规范化+常量集中：CHH/CW→CANVAS_H/W、palRgb→paletteRgb、crW/crTap→crWeights/crOffsets、
+  CH_COLORS→CHANNEL_COLORS；HEX_RAD/PAL_N/KERNEL_BOUND_RATIO/VIEW_FIT_MARGIN/TEX_GPU_MARGIN 入 constants.js 带注释
+- ⑧ 文档归位：docs/{todo,records,guides} 三分；PLAN/FINDINGS/COMPARISON/MVP计划→records、DESIGN→guides、
+  两份任务文档→todo；全量交叉引用 PCRE 修复（防双前缀）；exp/compare 数据归档 data/
+- lint 补 DEAD_SKIP（test_unit 模板字符串桩误报）；四关复跑全绿（浏览器 selftest 增量91.7 PASS）
+- 问题文档已解决：1、2、3、4、5a、6、7 —— 仅剩 5 的其余功能项（P4）

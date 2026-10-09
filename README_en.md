@@ -91,24 +91,24 @@ A'[c] = clip(A[c] + dt · D[c] / Σh_c, 0, 1)
 
 ```
 hexlifegame/
-├── index.html            # main program (single HTML+CSS+JS file)
-├── lifecreatures.js      # original creature library data (57 transplant survivors)
-├── README.md             # Chinese version of this document
-├── DESIGN.md             # redesign design doc (original source analysis + plan)
-├── PLAN.md               # iteration plan and experiment log
-├── COMPARISON.md         # square-kernel vs hex-kernel controlled experiment
-├── FINDINGS.md           # findings summary so far (rigorous + layperson layers)
-├── docs/                 # follow-up task notes
-├── tools/                # experiment and test scripts (run from repo root: node tools/xxx.js)
-│   ├── test_node.js      # Node regression test (FFT self-test + boot/step/render)
-│   ├── sweep2.js         # parameter sweep tool (maps stability bands)
-│   ├── hunt_creatures.js # creature hunter (classifies FLYER/OSC/STABLE)
-│   ├── transplant.js     # transplant scan of the original 330 specimens
-│   ├── compare_grids.js  # square/hex dual-kernel controlled experiment
-│   └── …                 # other experiment scripts (14 in total)
-├── exp_result.txt        # experiment data (Orbium square-grid control)
-├── compare_results.txt   # experiment data (all 57 species on both grids, raw output)
-└── lenia-reference/      # original reference source (MIT; kept locally, not committed)
+├── index.html            # thin shell: DOM + script load order (~200 lines)
+├── css/style.css         # all styles (incl. .light theme)
+├── js/                   # one-way deps: ui → render → core
+│   ├── constants.js      # centralized state & magic-number constants
+│   ├── core.js           # pure engine: FFT/kernel/step/presets/rules (zero DOM at load)
+│   ├── render.js         # texture / palette / drawing / plots
+│   └── ui.js             # controls / events / stamps / save-load / gallery / boot
+├── data/
+│   ├── lifecreatures.js  # original creature library (57 survivors)
+│   ├── longrun_2000.txt  # 2000-step survival verdict 35/57
+│   ├── compare_results.txt # 57 species × dual grids raw output
+│   └── exp_result.txt    # Orbium square-grid control data
+├── docs/                 # three-way: todo/ records/ guides/
+├── tools/                # 18 scripts (see tools/README.md): lint, test_node, test_unit, src…
+├── .github/workflows/ci.yml  # CI: lint + regression + unit tests
+├── package.json  .npmrc  .gitignore  LICENSE
+├── README_en.md          # this document (README.md = Chinese)
+└── lenia-reference/      # original reference source (MIT; local only, not committed)
 ```
 
 ## Verification

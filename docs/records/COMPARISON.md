@@ -1,6 +1,6 @@
 # 方格核 vs 六角核：原版生物对照实验
 
-> 工具：`node compare_grids.js A B`　原始数据：`compare_results.txt`（57 种 + 水母对照，每批重复水母）
+> 工具：`node compare_grids.js A B`　原始数据：`data/compare_results.txt`（57 种 + 水母对照，每批重复水母）
 
 ## 方法（单变量对照）
 

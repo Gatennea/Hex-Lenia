@@ -7,11 +7,10 @@ const stage = document.getElementById("stage");
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 let dpr = window.devicePixelRatio || 1;
-const CW = 940, CHH = 640;
-canvas.style.width = CW + "px";
-canvas.style.height = CHH + "px";
-canvas.width = Math.round(CW * dpr);
-canvas.height = Math.round(CHH * dpr);
+canvas.style.width = CANVAS_W + "px";
+canvas.style.height = CANVAS_H + "px";
+canvas.width = Math.round(CANVAS_W * dpr);
+canvas.height = Math.round(CANVAS_H * dpr);
 
 // 视图（世界坐标：格距 = 1；矩形环绕显示：每行 x = (q + r/2) mod W）
 // 内容框：x ∈ [−0.5, W+0.25]（右缘取平滑主份的最小覆盖，保证零缝隙），y ∈ [0, H·√3/2]
@@ -21,9 +20,9 @@ function contentBox() {
 }
 function fitView() {
   const b = contentBox();
-  view.z = Math.min(CW / b.w, CHH / b.h) * 0.94;
-  view.x = (CW - b.w * view.z) / 2 - b.x0 * view.z;
-  view.y = (CHH - b.h * view.z) / 2 - b.y0 * view.z;
+  view.z = Math.min(CANVAS_W / b.w, CANVAS_H / b.h) * VIEW_FIT_MARGIN;
+  view.x = (CANVAS_W - b.w * view.z) / 2 - b.x0 * view.z;
+  view.y = (CANVAS_H - b.h * view.z) / 2 - b.y0 * view.z;
 }
 
 // 六角顶点（pointy-top，顶点角 60i+30°），单位外接圆
@@ -32,14 +31,12 @@ for (let i = 0; i < 6; i++) {
   const a = (60 * i + 30) * Math.PI / 180;
   HEXV.push(Math.cos(a), Math.sin(a));
 }
-const HEX_RAD = 0.54;   // 留微缝
 
 // ═══════════════════════════════════════════════════════════
 //  配色系统：原版 Lenia 四色表（Lenia.html COLORS，0-15 刻度 ×17）
 //  + 现有青黄；背景 白底(原版)/黑底 联动零值色与页面主题
 // ═══════════════════════════════════════════════════════════
-const PAL_N = 64;
-let palSingle = [], palRgb = [];
+let palSingle = [], paletteRgb = [];
 let scheme = "blue";          // blue(原版默认) | grey | green | rainbow | teal
 let lightBg = true;           // 白底 = 原版风
 let tone = "bands";           // bands=原版11档离散色带（边缘锐利，默认）| smooth=连续渐变
@@ -101,13 +98,13 @@ function rebuildColorAssets() {
     palSingle.push(`rgb(${RAMP_LUT[L]},${RAMP_LUT[L + 1]},${RAMP_LUT[L + 2]})`);
   }
   // 多物种 8³ 桶（白底 = 油墨减色，零值融入白底）
-  palRgb = [];
+  paletteRgb = [];
   for (let i = 0; i < 512; i++) {
     let r = ((i >> 6) & 7) * 255 / 7 | 0;
     let g = ((i >> 3) & 7) * 255 / 7 | 0;
     let b = (i & 7) * 255 / 7 | 0;
     if (lightBg) { r = 255 - r; g = 255 - g; b = 255 - b; }
-    palRgb.push(`rgb(${r},${g},${b})`);
+    paletteRgb.push(`rgb(${r},${g},${b})`);
   }
 }
 rebuildColorAssets();
@@ -130,13 +127,13 @@ function allocBucketBuffers() {
 // ═════════════════════════════════════════════════════════════
 const texCanvas = document.createElement("canvas");
 const texCtx = texCanvas.getContext("2d");
-let crW = null, crTap = null;   // Catmull-Rom 权重/抽头偏移（每相位 4 个）
+let crWeights = null, crOffsets = null;   // Catmull-Rom 权重/抽头偏移（每相位 4 个）
 let tmpF = null;                // 水平插值中间缓冲
 function chooseTexScale() {
   // 纹理倍率自适应：按“设备像素/格”反推，使 GPU 残余双线性放大 ≤ ~1.45×
   // 同时限制纹理 ≤ ~1M 像素（约束构建成本）；缩放/换网格时自动重选
   const px = view.z * (window.devicePixelRatio || 1);
-  const want = Math.max(1, Math.round(px / 1.45));
+  const want = Math.max(1, Math.round(px / TEX_GPU_MARGIN));
   const maxS = Math.min(10, Math.max(1, Math.floor(Math.sqrt(1040000 / ((W + 2) * H)))));
   return Math.min(want, maxS);
 }
@@ -152,17 +149,17 @@ function resizeTexture() {
   texImg = texCtx.createImageData(texCanvas.width, texCanvas.height);
   // Catmull-Rom：输出像素 I → 源坐标 u = (I+0.5)/s − 1（样本点=格 q 整数坐标）
   // 分解 I = m·s + p：抽头 = m + tapOff[p][k]，权重只依赖相位 p
-  crW = new Float64Array(s * 4);
-  crTap = new Int32Array(s * 4);
+  crWeights = new Float64Array(s * 4);
+  crOffsets = new Int32Array(s * 4);
   for (let p = 0; p < s; p++) {
     const t = (p + 0.5) / s - 0.5;
     const i1 = Math.floor(t), f = t - i1;
     const f2 = f * f, f3 = f2 * f;
-    crW[p * 4 + 0] = -0.5 * f3 + f2 - 0.5 * f;
-    crW[p * 4 + 1] = 1.5 * f3 - 2.5 * f2 + 1;
-    crW[p * 4 + 2] = -1.5 * f3 + 2 * f2 + 0.5 * f;
-    crW[p * 4 + 3] = 0.5 * f3 - 0.5 * f2;
-    for (let k = 0; k < 4; k++) crTap[p * 4 + k] = i1 - 1 + k;  // −1：坐标系平移（格 q）
+    crWeights[p * 4 + 0] = -0.5 * f3 + f2 - 0.5 * f;
+    crWeights[p * 4 + 1] = 1.5 * f3 - 2.5 * f2 + 1;
+    crWeights[p * 4 + 2] = -1.5 * f3 + 2 * f2 + 0.5 * f;
+    crWeights[p * 4 + 3] = 0.5 * f3 - 0.5 * f2;
+    for (let k = 0; k < 4; k++) crOffsets[p * 4 + k] = i1 - 1 + k;  // −1：坐标系平移（格 q）
   }
   tmpF = new Float32Array(H * (W + 2) * s * 3);   // CH≤3 余量
   texDirty = true;
@@ -183,9 +180,9 @@ function buildTexture() {
         const p = I % s, m = (I - p) / s, b4 = p * 4;
         let a = 0;
         for (let k = 0; k < 4; k++) {
-          const w = crW[b4 + k];
+          const w = crWeights[b4 + k];
           if (w === 0) continue;
-          let q = m + crTap[b4 + k];
+          let q = m + crOffsets[b4 + k];
           if (q >= W) q -= W; else if (q < 0) q += W;
           a += w * F[q + brow];
         }
@@ -195,12 +192,12 @@ function buildTexture() {
     // ---- 垂直 pass → 纹理（LUT 上色）----
     for (let J = 0; J < Hout; J++) {
       const p = J % s, m = (J - p) / s, b4 = p * 4;
-      const r0 = m + crTap[b4], r1 = m + crTap[b4 + 1], r2 = m + crTap[b4 + 2], r3 = m + crTap[b4 + 3];
+      const r0 = m + crOffsets[b4], r1 = m + crOffsets[b4 + 1], r2 = m + crOffsets[b4 + 2], r3 = m + crOffsets[b4 + 3];
       const rr0 = (r0 >= H ? r0 - H : r0 < 0 ? r0 + H : r0) * Wout;
       const rr1 = (r1 >= H ? r1 - H : r1 < 0 ? r1 + H : r1) * Wout;
       const rr2 = (r2 >= H ? r2 - H : r2 < 0 ? r2 + H : r2) * Wout;
       const rr3 = (r3 >= H ? r3 - H : r3 < 0 ? r3 + H : r3) * Wout;
-      const w0 = crW[b4], w1 = crW[b4 + 1], w2 = crW[b4 + 2], w3 = crW[b4 + 3];
+      const w0 = crWeights[b4], w1 = crWeights[b4 + 1], w2 = crWeights[b4 + 2], w3 = crWeights[b4 + 3];
       const orow = J * Wout * 4;
       for (let I = 0; I < Wout; I++) {
         let v = 0;
@@ -221,9 +218,9 @@ function buildTexture() {
         const p = I % s, m = (I - p) / s, b4 = p * 4;
         let a0 = 0, a1 = 0, a2 = 0;
         for (let k = 0; k < 4; k++) {
-          const w = crW[b4 + k];
+          const w = crWeights[b4 + k];
           if (w === 0) continue;
-          let q = m + crTap[b4 + k];
+          let q = m + crOffsets[b4 + k];
           if (q >= W) q -= W; else if (q < 0) q += W;
           const idx = q + j * W;
           a0 += w * fields[0][idx];
@@ -238,12 +235,12 @@ function buildTexture() {
     // ---- 多物种：垂直 ----
     for (let J = 0; J < Hout; J++) {
       const p = J % s, m = (J - p) / s, b4 = p * 4;
-      const r0 = m + crTap[b4], r1 = m + crTap[b4 + 1], r2 = m + crTap[b4 + 2], r3 = m + crTap[b4 + 3];
+      const r0 = m + crOffsets[b4], r1 = m + crOffsets[b4 + 1], r2 = m + crOffsets[b4 + 2], r3 = m + crOffsets[b4 + 3];
       const rr0 = (r0 >= H ? r0 - H : r0 < 0 ? r0 + H : r0) * Wout * CH;
       const rr1 = (r1 >= H ? r1 - H : r1 < 0 ? r1 + H : r1) * Wout * CH;
       const rr2 = (r2 >= H ? r2 - H : r2 < 0 ? r2 + H : r2) * Wout * CH;
       const rr3 = (r3 >= H ? r3 - H : r3 < 0 ? r3 + H : r3) * Wout * CH;
-      const w0 = crW[b4], w1 = crW[b4 + 1], w2 = crW[b4 + 2], w3 = crW[b4 + 3];
+      const w0 = crWeights[b4], w1 = crWeights[b4 + 1], w2 = crWeights[b4 + 2], w3 = crWeights[b4 + 3];
       const orow = J * Wout * 4;
       for (let I = 0; I < Wout; I++) {
         const off = I * CH;
@@ -292,10 +289,10 @@ function drawLegend() {
   if (CH > 1) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = "11px monospace";
-    const ink = lightBg ? ["#0a7f70", "#c23a78", "#9a7b00"] : CH_COLORS;
+    const ink = lightBg ? ["#0a7f70", "#c23a78", "#9a7b00"] : CHANNEL_COLORS;
     for (let c = 0; c < CH; c++) {
       ctx.fillStyle = ink[c];
-      ctx.fillText(`${LETTERS[c]}=ch${c}${c === paintCh ? " ●绘制中" : ""}`, 10 + c * 90, CHH - 10);
+      ctx.fillText(`${LETTERS[c]}=ch${c}${c === paintCh ? " ●绘制中" : ""}`, 10 + c * 90, CANVAS_H - 10);
     }
   }
 }
@@ -321,7 +318,7 @@ function drawPlots() {
   const bgc = lightBg ? "#ffffff" : "#101024";
   const axc = lightBg ? "#99aabb" : "#4a4a6a";
   const curC = lightBg ? "#09f" : "#37e6d0";
-  const ink = lightBg ? ["#0a7f70", "#c23a78", "#9a7b00"] : CH_COLORS;
+  const ink = lightBg ? ["#0a7f70", "#c23a78", "#9a7b00"] : CHANNEL_COLORS;
   // ── K(d) ──
   pkc.setTransform(d, 0, 0, d, 0, 0);
   pkc.fillStyle = bgc; pkc.fillRect(0, 0, PW, PH);
@@ -416,7 +413,7 @@ function render() {
   for (let k = 0; k < buckets; k++) { bucketStart[k] = acc; acc += bucketCnt[k]; }
 
   // 4. 按桶批量绘制
-  const pal = CH === 1 ? palSingle : palRgb;
+  const pal = CH === 1 ? palSingle : paletteRgb;
   const rad = HEX_RAD;
   for (let k = 0; k < buckets; k++) {
     const s0 = bucketStart[k], s1 = s0 + bucketCnt[k];

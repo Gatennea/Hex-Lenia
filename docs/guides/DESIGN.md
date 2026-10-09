@@ -1,7 +1,7 @@
 # 六角 Lenia 重做设计文档
 
 > 基于原版 Lenia 源码（`lenia-reference/`，github.com/Chakazul/Lenia）的分析，
-> 重新设计六边形版本。本文档取代旧 PLAN.md 的方案。
+> 重新设计六边形版本。本文档取代旧 docs/records/PLAN.md 的方案。
 
 ---
 

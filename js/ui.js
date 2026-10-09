@@ -369,20 +369,20 @@ function exportFile() {
 
 function screenshot() {
   const scale = 3;
-  const ow = Math.round(CW * scale), oh = Math.round((CHH + 26) * scale);
+  const ow = Math.round(CANVAS_W * scale), oh = Math.round((CANVAS_H + 26) * scale);
   const oc = document.createElement("canvas");
   oc.width = ow; oc.height = oh;
   const ox = oc.getContext("2d");
   ox.fillStyle = bgFill();
   ox.fillRect(0, 0, ow, oh);
-  ox.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, CW * scale, CHH * scale);
+  ox.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, CANVAS_W * scale, CANVAS_H * scale);
   // 信息栏
   ox.fillStyle = "#101026";
-  ox.fillRect(0, CHH * scale, ow, 26 * scale);
+  ox.fillRect(0, CANVAS_H * scale, ow, 26 * scale);
   ox.fillStyle = "#8cf";
   ox.font = `${13 * scale / 2}px monospace`;
   const statsTxt = document.getElementById("stats").textContent.replace(/\s+/g, " ");
-  ox.fillText(`hexLenia | ${W}×${H} | gen=${gen} | ${new Date().toLocaleString("zh-CN")} | ${statsTxt}`, 12, CHH * scale + 17 * scale / 2 + 2);
+  ox.fillText(`hexLenia | ${W}×${H} | gen=${gen} | ${new Date().toLocaleString("zh-CN")} | ${statsTxt}`, 12, CANVAS_H * scale + 17 * scale / 2 + 2);
   const link = document.createElement("a");
   link.download = `hexlenia-${Date.now()}.png`;
   link.href = oc.toDataURL("image/png");
@@ -570,7 +570,7 @@ function syncRuleUI() {
       const b = document.createElement("button");
       b.className = "btn chip" + (i === curRule ? " active" : "");
       const lb = r.label || `${LETTERS[r.src]}→${LETTERS[r.dst]}`;
-      b.innerHTML = `<span class="swatch" style="background:${CH_COLORS[r.dst]}"></span>${lb}`;
+      b.innerHTML = `<span class="swatch" style="background:${CHANNEL_COLORS[r.dst]}"></span>${lb}`;
       b.addEventListener("click", () => { curRule = i; syncRuleUI(); syncParamUI(); });
       chips.appendChild(b);
     });

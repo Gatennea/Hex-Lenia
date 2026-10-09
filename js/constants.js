@@ -12,7 +12,7 @@
 
 const SQ3 = Math.sqrt(3);
 const LETTERS = ["A", "B", "C"];
-const CH_COLORS = ["#37e6d0", "#ff5fa2", "#ffd23e"];
+const CHANNEL_COLORS = ["#37e6d0", "#ff5fa2", "#ffd23e"];
 
 // ---------- 全局状态 ----------
 let W = 128, H = 128, N = W * H;
@@ -38,3 +38,11 @@ let stepMs = 0;
 let viewMode = "smooth";       // 显示：smooth=平滑插值（原版风格）| pixel=离散六角格
 let needRender = true;
 let texImg = null, texScale = 1, texDirty = true;
+
+// ── 集中常量（问题#7：魔法数字带注释入册）──
+const CANVAS_W = 940, CANVAS_H = 640;   // 画布逻辑尺寸（CSS 像素）
+const HEX_RAD = 0.54;                   // 六角顶点微调系数（视觉）
+const PAL_N = 64;                       // 像素模式调色板分桶数
+const KERNEL_BOUND_RATIO = 1.6;         // 核支撑域系数：采样到 ⌈k·R⌉+1
+const VIEW_FIT_MARGIN = 0.94;           // 视口适配留边（1=紧贴）
+const TEX_GPU_MARGIN = 1.45;            // 纹理倍率安全线（GPU 双线性放大上限）

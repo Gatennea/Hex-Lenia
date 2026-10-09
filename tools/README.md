@@ -24,7 +24,7 @@
 | `test_isotropy.js` | C6 各向同性（60°×6 旋转 × 800 步） | `node tools/test_isotropy.js` |
 | `test_rotate.js` | 任意角旋转放置实验（7 角度 × 600 步） | `node tools/test_rotate.js` |
 | `reproduce_jelly.js` | 水母复现尝试（笔画种子矩阵） | `node tools/reproduce_jelly.js` |
-| `experiment_orbium.js` | Orbium 方格对照引擎实验 | `node tools/experiment_orbium.js` → `exp_result.txt` |
+| `experiment_orbium.js` | Orbium 方格对照引擎实验 | `node tools/experiment_orbium.js` → `data/exp_result.txt` |
 | `build_gallery.js` | 从原版 LifeForms 重建 `lifecreatures.js`（57 种键匹配） | **唯一依赖 `lenia-reference/`（不入库）**，本地有该目录才能跑 |
 | `diag_cells.js` | 生物库数据诊断（解码/规则解析抽查） | `node tools/diag_cells.js` |
 
@@ -48,4 +48,4 @@
 |---|---|
 | `data/compare_results.txt` | 57 种 × 方格/六角 × 300 步 全量原始数据（9 批） |
 | `data/longrun_p*.txt` → `longrun_2000.txt` | 57 种 × 2000 步长跑复核（定稿幸存名单） |
-| `exp_result.txt` | Orbium 方格对照（根目录，待随重构迁 data/） |
+| `data/exp_result.txt` | Orbium 方格对照（已归档；重跑 experiment_orbium 重新生成） |

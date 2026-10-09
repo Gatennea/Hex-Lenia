@@ -95,7 +95,9 @@ hexlifegame/
 ├── data/
 │   ├── lifecreatures.js  # 原版生物库（57 种）
 │   ├── longrun_2000.txt  # 2000 步长跑定稿 35/57（含统计头）
-│   └── longrun_p*.txt    # 长跑分批原始输出
+│   ├── longrun_p*.txt    # 长跑分批原始输出
+│   ├── compare_results.txt  # 57种×双网格×300 步原始数据
+│   └── exp_result.txt    # Orbium 方格对照数据
 ├── docs/                 # 文档三分：todo/ 待办、records/ 记录、guides/ 说明
 ├── tools/                # 18 个脚本（详见 tools/README.md）
 │   ├── lint.js           # 静态四查（语法/禁**/断链/死代码）
@@ -106,7 +108,6 @@ hexlifegame/
 │   └── …                 # 其余实验脚本
 ├── .github/workflows/ci.yml  # CI：lint + 回归 + 单测
 ├── package.json  .npmrc  .gitignore  LICENSE  README.md  README_en.md
-├── exp_result.txt / compare_results.txt   # 实验数据（P3 计划迁 data/）
 └── lenia-reference/      # 原版参考源码（MIT；本地保留，不入库）
 ```
 

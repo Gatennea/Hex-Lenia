@@ -99,7 +99,7 @@ function fft2d(re, im, w, h, dir) {
 function buildKernel(rad) {
   const sp = new Float64Array(N);          // 空间核，中心在索引 0
   const taps = [];                         // {dq,dr,w} 供自检
-  const bound = Math.ceil(rad * 1.6) + 1;
+  const bound = Math.ceil(rad * KERNEL_BOUND_RATIO) + 1;
   const core = CORES[coreType];
   let sum = 0;
   for (let dr = -bound; dr <= bound; dr++) {
