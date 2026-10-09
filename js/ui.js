@@ -39,7 +39,7 @@ function placeLife(idx, cx, cy) {
     dbg("自动升网格 -> " + g + "² (R=" + p.R + ", 种子" + seed.w + "x" + seed.h + ")");
   }
   if (CH === 1) {   // 物种参数即身份（多物种时不动规则）
-    R = p.R; T = p.T;
+    setGlobalR(p.R); T = p.T;
     rules[0].m = p.m; rules[0].s = p.s; rules[0].g = p.grow;
     coreType = p.core;
     rebuildKernels(true);
@@ -314,7 +314,7 @@ function deserializeState(o) {
   if (![32, 64, 128, 256, 512].includes(o.grid)) throw new Error("网格值无效: " + o.grid);
   if (!Array.isArray(o.rules) || !o.rules.length || !Array.isArray(o.cells)) throw new Error("存档缺少规则或场数据");
   // 参数
-  R = o.R; T = o.T; alpha = o.alpha; coreType = o.coreType;
+  setGlobalR(o.R); T = o.T; alpha = o.alpha; coreType = o.coreType;
   // 网格 / 通道 / 缓冲
   W = H = o.grid; N = W * W;
   CH = Math.max(1, Math.min(3, o.ch | 0));
@@ -501,7 +501,7 @@ const PARAM_PRESETS = {
 $("selParam").addEventListener("change", e => {
   const p = PARAM_PRESETS[e.target.value];
   if (!p) return;
-  R = p.R; T = p.T;
+  setGlobalR(p.R); T = p.T;
   for (const r of rules) { r.m = p.m; r.s = p.s; }
   rebuildKernels(true);
   $("sR").value = R; $("vR").textContent = R;
@@ -535,7 +535,7 @@ function bindSlider(id, vid, fn, fmt) {
     drawPlots();
   });
 }
-bindSlider("sR", "vR", v => { R = v; rebuildKernels(true); }, v => v.toFixed(0));
+bindSlider("sR", "vR", v => { setGlobalR(v); rebuildKernels(true); }, v => v.toFixed(0));
 bindSlider("sM", "vM", v => { if (rules[curRule]) rules[curRule].m = v; }, v => v.toFixed(3));
 bindSlider("sS", "vS", v => { if (rules[curRule]) rules[curRule].s = v; }, v => v.toFixed(3));
 bindSlider("sT", "vT", v => { T = v; }, v => v.toFixed(0));
@@ -574,6 +574,30 @@ function syncRuleUI() {
       b.addEventListener("click", () => { curRule = i; syncRuleUI(); syncParamUI(); });
       chips.appendChild(b);
     });
+  }
+  // 5d per-rule R：多规则时为当前规则提供独立核半径（顶部 R 滑杆仍=改全部）
+  if (rules.length > 1 && rules[curRule]) {
+    const wrap = document.createElement("span");
+    wrap.style.cssText = "display:inline-flex;align-items:center;gap:3px;margin-left:6px;vertical-align:middle";
+    const lab = document.createElement("label");
+    lab.textContent = "R/规则";
+    lab.style.cssText = "font-size:11px;opacity:.75";
+    const inp = document.createElement("input");
+    inp.type = "number"; inp.min = 3; inp.max = 40; inp.step = 1;
+    inp.value = rules[curRule].rad != null ? rules[curRule].rad : R;
+    inp.style.cssText = "width:52px";
+    inp.title = "仅当前规则的核半径（per-rule R）；顶部 R 滑杆会同时改所有规则";
+    inp.addEventListener("change", () => {
+      const v = Math.max(3, Math.min(40, Math.round(+inp.value || R)));
+      inp.value = v;
+      rules[curRule].rad = v; R = v;
+      rebuildKernels(true);
+      $("sR").value = R; $("vR").textContent = R;
+      dbg("per-rule R: rule" + curRule + " -> " + v + "（其余规则不变）");
+      showToast("⚙ 规则" + curRule + " R=" + v + "（仅本规则，核已重建）");
+    });
+    wrap.appendChild(lab); wrap.appendChild(inp);
+    chips.appendChild(wrap);
   }
   const cs = $("chSel");
   cs.innerHTML = "";
@@ -682,7 +706,7 @@ function applyShareHash() {
     const o = JSON.parse(atob(location.hash.slice(3)));
     if (o.v !== 1) throw new Error("version mismatch");
     if (o.g && o.g !== W && [32, 64, 128, 256, 512].indexOf(o.g) >= 0) setGrid(o.g);
-    R = o.R; T = o.T; alpha = o.a; coreType = o.c;
+    setGlobalR(o.R); T = o.T; alpha = o.a; coreType = o.c;
     if (o.rs && o.rs.length === rules.length)
       o.rs.forEach((a, i) => Object.assign(rules[i], { src: a[0], dst: a[1], m: a[2], s: a[3], h: a[4], g: a[5] }));
     rebuildKernels(true);

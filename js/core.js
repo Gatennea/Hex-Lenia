@@ -129,9 +129,18 @@ function buildKernel(rad) {
 // 规则参数变化 → 重建对应核；R/α/核类型 → 重建全部
 function rebuildKernels(all) {
   for (let k = 0; k < rules.length; k++) {
-    // 核半径始终取全局 R（rad 是 applyPreset 时的快照，会压过后来的 R 修改导致错配）
-    if (all || !rules[k].kf) { rules[k].rad = R; rules[k].kf = buildKernel(R); }
+    // per-rule R：优先取规则自己的 rad，缺失才回退全局 R（5d）
+    if (all || !rules[k].kf) {
+      const rad = rules[k].rad != null ? rules[k].rad : R;
+      rules[k].rad = rad;
+      rules[k].kf = buildKernel(rad);
+    }
   }
+}
+// 全局 R 写入的唯一入口：同步所有规则的 rad——根治“快照压过新值”类错配（见 rad 事故复盘）
+function setGlobalR(v) {
+  R = v;
+  for (const r of rules) r.rad = v;
 }
 
 // ════════════════════════════════════════════════════════════════
