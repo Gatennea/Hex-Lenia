@@ -306,6 +306,7 @@ function serializeState() {
     app: "hexlenia", v: 1,
     grid: W, ch: CH, gen,
     R, T, alpha, coreType,
+    ring: [ringB, ringC],
     rules: rules.map(r => ({ src: r.src, dst: r.dst, m: r.m, s: r.s, h: r.h, g: r.g })),
     scheme, tone, lightBg,
     cells
@@ -317,6 +318,7 @@ function deserializeState(o) {
   if (!Array.isArray(o.rules) || !o.rules.length || !Array.isArray(o.cells)) throw new Error("存档缺少规则或场数据");
   // 参数
   setGlobalR(o.R); T = o.T; alpha = o.alpha; coreType = o.coreType;
+  if (o.ring) { ringB = +o.ring[0] || 0; ringC = +o.ring[1] || 0.62; }
   // 网格 / 通道 / 缓冲
   W = H = o.grid; N = W * W;
   CH = Math.max(1, Math.min(3, o.ch | 0));
@@ -542,6 +544,8 @@ bindSlider("sM", "vM", v => { if (rules[curRule]) rules[curRule].m = v; }, v => 
 bindSlider("sS", "vS", v => { if (rules[curRule]) rules[curRule].s = v; }, v => v.toFixed(3));
 bindSlider("sT", "vT", v => { T = v; }, v => v.toFixed(0));
 bindSlider("sA", "vA", v => { alpha = v; rebuildKernels(true); }, v => v.toFixed(0));
+bindSlider("sRingB", "vRingB", v => { ringB = v; rebuildKernels(true); drawPlots(); }, v => v.toFixed(2));
+bindSlider("sRingC", "vRingC", v => { ringC = v; rebuildKernels(true); drawPlots(); }, v => v.toFixed(2));
 bindSlider("sSpeed", "vSpeed", v => { speed = v; }, v => v + "/s");
 bindSlider("sDens", "vDens", v => { dens = v; }, v => v.toFixed(2));
 bindSlider("sBrush", "vBrush", v => { brushR = v; }, v => v.toFixed(0));
@@ -699,7 +703,7 @@ requestAnimationFrame(loop);
 
 // ── 5c URL 参数分享：#p=<base64(JSON)>，只含参数不含场（场走 JSON 存档）──
 function buildShareHash() {
-  const o = { v: 1, g: W, R, T, a: alpha, c: coreType, rs: rules.map(r => [r.src, r.dst, +r.m.toFixed(4), +r.s.toFixed(4), r.h, r.g]) };
+  const o = { v: 1, g: W, R, T, a: alpha, c: coreType, rb: ringB, rc: ringC, rs: rules.map(r => [r.src, r.dst, +r.m.toFixed(4), +r.s.toFixed(4), r.h, r.g]) };
   return "#p=" + btoa(JSON.stringify(o));
 }
 function applyShareHash() {
@@ -709,6 +713,7 @@ function applyShareHash() {
     if (o.v !== 1) throw new Error("version mismatch");
     if (o.g && o.g !== W && [32, 64, 128, 256, 512].indexOf(o.g) >= 0) setGrid(o.g);
     setGlobalR(o.R); T = o.T; alpha = o.a; coreType = o.c;
+    ringB = o.rb != null ? +o.rb : 0; ringC = o.rc != null ? +o.rc : 0.62;
     if (o.rs && o.rs.length === rules.length)
       o.rs.forEach((a, i) => Object.assign(rules[i], { src: a[0], dst: a[1], m: a[2], s: a[3], h: a[4], g: a[5] }));
     rebuildKernels(true);
@@ -717,6 +722,8 @@ function applyShareHash() {
     $("sA").value = alpha; $("vA").textContent = alpha;
     $("selCore").value = coreType;
     syncRuleUI(); syncParamUI();
+    $("sRingB").value = ringB; $("vRingB").textContent = (+ringB).toFixed(2);
+    $("sRingC").value = ringC; $("vRingC").textContent = (+ringC).toFixed(2);
     showToast("🔗 已从链接载入参数：R=" + R + " μ=" + rules[0].m.toFixed(3) + (rules.length > 1 ? " ×" + rules.length + "条规则" : ""));
     dbg("applyShareHash ok g=" + W + " rules=" + rules.length);
     return true;

@@ -46,3 +46,8 @@ const PAL_N = 64;                       // 像素模式调色板分桶数
 const KERNEL_BOUND_RATIO = 1.6;         // 核支撑域系数：采样到 ⌈k·R⌉+1
 const VIEW_FIT_MARGIN = 0.94;           // 视口适配留边（1=紧贴）
 const TEX_GPU_MARGIN = 1.45;            // 纹理倍率安全线（GPU 双线性放大上限）
+
+// ── 多环核（5f）：第二环带参数，ringB=0 时与单环完全等价 ──
+let ringB = 0;                          // 第二环带权重 β（0=关，0~0.9）
+let ringC = 0.62;                       // 环带中心位置（相对核半径 R）
+const RING_W = 0.18;                    // 环带半宽（相对 R，固定）

@@ -96,6 +96,14 @@ function fft2d(re, im, w, h, dir) {
 //  核构建：六角距离 → 频域核（缓存）
 //  六角轴向 (dq,dr) 的笛卡尔距离：dx = dq+dr/2, dy = (√3/2)·dr
 // ════════════════════════════════════════════════════════════════
+// 多环核形状（5f）：基环 core(d/R) + 可选第二环带（峰值在 ringC·R 处，沿用所选核型轮廓）
+// ringB=0 时逐位等价单环；带内参数 t∈[0.5,1] 使所选核的峰值恰落在环心
+function bandW(core, d, rad) {
+  const v1 = core(d / rad, alpha);
+  if (ringB <= 0) return v1;
+  const t = 0.5 + Math.abs(d - ringC * rad) / (2 * RING_W * rad);
+  return (1 - ringB) * v1 + ringB * core(t, alpha);
+}
 function buildKernel(rad) {
   const sp = new Float64Array(N);          // 空间核，中心在索引 0
   const taps = [];                         // {dq,dr,w} 供自检
@@ -108,7 +116,7 @@ function buildKernel(rad) {
       const dx = dq + dr / 2;
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d >= rad) continue;              // 支撑 |x| < R（论文）
-      const w = core(d / rad, alpha);
+      const w = bandW(core, d, rad);
       if (w === 0) continue;
       const qi = ((dq % W) + W) % W, ri = ((dr % H) + H) % H;
       sp[ri * W + qi] = w;

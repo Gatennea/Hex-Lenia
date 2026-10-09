@@ -19,6 +19,7 @@ return {
   applyPreset, randomInit, clearAll, step,
   get W(){return W}, get N(){return N}, get R(){return R}, get T(){return T},
   get rules(){return rules}, get fields(){return fields}, get coreType(){return coreType},
+  setRings: (b, c) => { ringB = b; ringC = c; },
 };`)();
 
 let pass = 0, fail = 0;
@@ -72,6 +73,22 @@ T("taps 与空间核同步归一", Math.abs(kf.taps.reduce((a, _, i, arr) => i %
 {
   const s = api.lifeToCells("1,0.5/0,1");
   T("lifeToCells 明文 2×2", s.w === 2 && s.h === 2 && s.arr[0][0] === 1 && s.arr[0][1] === 0.5 && s.arr[1][1] === 1, JSON.stringify(s));
+}
+
+// 7.5 多环核（5f）
+{
+  const k1 = api.buildKernel(10);              // 基线：单环
+  const in1 = k1.sp[2], ring1 = k1.sp[6];      // d=2（内）与 d=6（环位0.62×10）样本
+  api.setRings(0.5, 0.62);
+  const k2 = api.buildKernel(10);
+  let s = 0; for (const v of k2.sp) s += v;
+  const in2 = k2.sp[2], ring2 = k2.sp[6];
+  T("双环核 ΣK=1", Math.abs(s - 1) < 1e-12, "Σ=" + s);
+  T("环带使 ring/inner 比值提升 >1.5×", (ring2 / in2) > 1.5 * (ring1 / in1),
+    "单环=" + (ring1 / in1).toFixed(2) + " 双环=" + (ring2 / in2).toFixed(2));
+  api.setRings(0, 0.62);
+  const k3 = api.buildKernel(10);
+  T("β=0 回到单环（与基线逐位一致）", k3.sp[6] === k1.sp[6] && k3.sp[2] === k1.sp[2]);
 }
 
 // 7. 引擎独立性：core-only 环境完整跑 100 步存活（solo 预设内含随机初始化）
